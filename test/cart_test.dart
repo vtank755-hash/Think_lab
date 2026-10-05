@@ -34,10 +34,14 @@ void main() {
     expect(find.text('Python Programming'), findsOneWidget);
     expect(find.text('₹1,799'), findsWidgets);
 
-    // Tapping "Add to Cart" again must not add a duplicate.
+    // The details button now reads "Go to Cart" — tapping it never creates
+    // a duplicate item.
     await tester.tap(find.byIcon(Icons.arrow_back_ios_new_rounded));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Add to Cart'));
+    expect(find.text('Add to Cart'), findsNothing);
+    expect(find.text('Go to Cart'), findsOneWidget);
+
+    await tester.tap(find.text('Go to Cart'));
     await tester.pumpAndSettle();
 
     expect(cartCourses.length, 1);
@@ -46,7 +50,8 @@ void main() {
     // Summary shows the total price only — never a discount.
     expect(find.text('Total'), findsOneWidget);
     expect(find.text('Discount'), findsNothing);
-    expect(find.text('Checkout'), findsOneWidget);
+    // Payment starts here and nowhere else.
+    expect(find.text('Pay Now'), findsOneWidget);
   });
 
   testWidgets('Cart total = sum of item prices, and items can be deleted', (

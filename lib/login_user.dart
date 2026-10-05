@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'register_user.dart';
 import 'index.dart';
+import 'session.dart';
 
 const _primary = Color(0xFF6C35E8);
 const _indigo = Color(0xFF4945E8);
@@ -55,6 +56,9 @@ class _login_userState extends State<login_user> {
   // Submit login
   void _submitLogin() {
     if (_formKey.currentState?.validate() ?? false) {
+      // The typed e-mail becomes the current user id: every wishlist and
+      // every purchase in the app is stored against THIS user + course id.
+      signIn(_email.text);
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const index()),

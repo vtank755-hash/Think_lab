@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import 'session.dart';
+
 /// A single lesson/module inside a course curriculum.
 class Lesson {
   final String title;
@@ -78,21 +80,47 @@ class Course {
   );
 }
 
-/// App-wide favourite state, keyed by course id, so the heart is identical
-/// on the home cards, the search results and the details page.
-final favoriteIds = ValueNotifier<Set<String>>(
-  Set.of(allCourses.where((c) => c.isFavorite).map((c) => c.id)),
-);
+/// Every user's wishlist: `userId -> the ids of their saved courses`.
+///
+/// The wishlist is scoped to the signed-in user, so two accounts saved on the
+/// same device keep separate lists.
+final _wishlistByUser = <String, ValueNotifier<Set<String>>>{};
 
-/// Live favourite flag for a course.
+/// The wishlist of [userId], keyed by course id (never by title).
+///
+/// A user's wishlist starts out with the courses flagged `isFavorite: true`
+/// in the data.
+ValueNotifier<Set<String>> wishlistOf(String userId) =>
+    _wishlistByUser.putIfAbsent(
+      userId,
+      () => ValueNotifier<Set<String>>(
+        Set.of(allCourses.where((c) => c.isFavorite).map((c) => c.id)),
+      ),
+    );
+
+/// The current user's wishlist.
+///
+/// The name is unchanged, so every screen that already listens to it keeps
+/// working as-is:
+///
+/// ```dart
+/// ValueListenableBuilder<Set<String>>(valueListenable: favoriteIds, ...)
+/// ```
+ValueNotifier<Set<String>> get favoriteIds => wishlistOf(currentUser.value);
+
+/// Live favourite flag for a course of the CURRENT user.
 bool isFavorite(Course course) => favoriteIds.value.contains(course.id);
 
-/// Flip the favourite flag of a course everywhere in the app.
+/// Saves / unsaves a course in the current user's wishlist (by course id).
 void toggleFavorite(Course course) {
-  final next = Set<String>.of(favoriteIds.value);
+  final wishlist = favoriteIds;
+  final next = Set<String>.of(wishlist.value);
   if (!next.remove(course.id)) next.add(course.id);
-  favoriteIds.value = next;
+  wishlist.value = next;
 }
+
+/// Restores the default wishlist of every user — tests only.
+void resetFavorites() => _wishlistByUser.clear();
 
 /// Every course in the app — the single source of truth.
 /// Exactly six courses, distributed across the six categories.

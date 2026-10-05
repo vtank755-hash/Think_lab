@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'cart.dart';
+import 'checkout_page.dart';
 import 'course.dart';
 
 const _heading = Color(0xFF2B2356);
@@ -60,7 +61,7 @@ class CartPage extends StatelessWidget {
                     ),
                   ),
                 if (courses.isNotEmpty)
-                  _summary(context, formatRupees(cartTotal)),
+                  _summary(context, courses, formatRupees(cartTotal)),
               ],
             );
           },
@@ -128,7 +129,7 @@ class CartPage extends StatelessWidget {
 
   // ----------------------------------------------------------- summary
 
-  Widget _summary(BuildContext context, String total) {
+  Widget _summary(BuildContext context, List<Course> courses, String total) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
@@ -170,9 +171,13 @@ class CartPage extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: FilledButton(
-              onPressed: () => _snack(
+              // The ONLY entry point to payment in the whole app.
+              onPressed: () => Navigator.push(
                 context,
-                'Checkout — $total for ${cartCourses.length} course(s)',
+                MaterialPageRoute(
+                  builder: (_) =>
+                      CheckoutPage(courses: courses, total: cartTotal),
+                ),
               ),
               style: FilledButton.styleFrom(
                 backgroundColor: _purple,
@@ -181,25 +186,22 @@ class CartPage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(30),
                 ),
               ),
-              child: Row(
+              child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text(
-                    'Checkout',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
                   Text(
-                    total,
-                    style: const TextStyle(
+                    'Pay Now',
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
                       color: Colors.white,
                     ),
+                  ),
+                  SizedBox(width: 8),
+                  Icon(
+                    Icons.arrow_forward_rounded,
+                    color: Colors.white,
+                    size: 18,
                   ),
                 ],
               ),

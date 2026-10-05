@@ -134,7 +134,10 @@ void main() {
     expect(find.byType(CourseDetails), findsOneWidget);
     expect(find.text(course.title), findsOneWidget);
     expect(find.text(course.price), findsOneWidget);
-    expect(find.text('Enroll Now'), findsOneWidget);
+    expect(find.text('Add to Cart'), findsOneWidget);
+    // Payment may never start from the details page.
+    expect(find.text('Pay Now'), findsNothing);
+    expect(find.text('Buy Now'), findsNothing);
 
     // No other course's information or price leaks in.
     for (final other in allCourses) {

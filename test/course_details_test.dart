@@ -27,8 +27,11 @@ void main() {
     expect(find.text('Arjun Rao'), findsOneWidget);
     expect(find.text('Description'), findsOneWidget);
     expect(find.text('Curriculum'), findsOneWidget);
-    expect(find.text('Enroll Now'), findsOneWidget);
     expect(find.text('Add to Cart'), findsOneWidget);
+    // No direct payment from the details page.
+    expect(find.text('Enroll Now'), findsNothing);
+    expect(find.text('Buy Now'), findsNothing);
+    expect(find.text('Pay Now'), findsNothing);
   });
 
   testWidgets('Details page shows the selected course content', (tester) async {
@@ -83,8 +86,8 @@ void main() {
         findsOneWidget,
         reason: '$title should open the details page',
       );
-      expect(find.text('Enroll Now'), findsOneWidget);
       expect(find.text('Add to Cart'), findsOneWidget);
+      expect(find.text('Pay Now'), findsNothing);
 
       await tester.tap(find.byIcon(Icons.swap_horiz));
       await tester.pumpAndSettle();

@@ -26,4 +26,25 @@ void main() {
     expect(find.byType(Searches), findsOneWidget);
     expect(find.text('Recent Searches'), findsOneWidget);
   });
+
+  testWidgets('"See all" next to Popular Courses opens the Searches page', (
+    tester,
+  ) async {
+    ignoreOverflowErrors();
+
+    await tester.pumpWidget(const MaterialApp(home: index()));
+    await tester.pump(const Duration(seconds: 1));
+
+    // 0 = Categories, 1 = Popular Courses, 2 = Continue Learning, 3 = Recommended
+    final popularSeeAll = find.text('See all').at(1);
+    await tester.ensureVisible(popularSeeAll);
+    await tester.pump(const Duration(seconds: 1));
+
+    await tester.tap(popularSeeAll);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Searches), findsOneWidget);
+    expect(find.text('Search Courses'), findsOneWidget);
+    expect(find.text('Recent Searches'), findsOneWidget);
+  });
 }

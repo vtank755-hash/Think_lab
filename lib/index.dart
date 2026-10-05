@@ -6,6 +6,7 @@ import 'course.dart';
 import 'course_details.dart';
 import 'Searches.dart';
 import 'widgets/nav_bar.dart';
+import 'wishlist_page.dart';
 
 const _purple = Color(0xFF6B45F0);
 const _purpleDark = Color(0xFF5A36E0);
@@ -53,12 +54,22 @@ class _indexState extends State<index> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _pageBg,
-      body: SafeArea(child: _tab == 0 ? _home() : _otherTab()),
+      body: SafeArea(child: _body()),
       bottomNavigationBar: NavBar(
         currentIndex: _tab,
         onTap: (i) => setState(() => _tab = i),
       ),
     );
+  }
+
+  /// Tab 0 = home, tab 2 = the Wishlist screen, everything else still shows
+  /// its placeholder.
+  Widget _body() {
+    if (_tab == 0) return _home();
+    if (_tab == 2) {
+      return WishlistPage(onBack: () => setState(() => _tab = 0));
+    }
+    return _otherTab();
   }
 
   Widget _home() {
@@ -108,11 +119,11 @@ class _indexState extends State<index> {
           const SizedBox(height: 14),
           _categories(),
           const SizedBox(height: 22),
-          _rowTitle('Popular Courses'),
+          _rowTitle('Popular Courses', onSeeAll: _openSearches),
           const SizedBox(height: 14),
           _popular(),
           const SizedBox(height: 22),
-          _rowTitle('Continue Learning'),
+          _rowTitle('Continue Learning', onSeeAll: _openSearches),
           const SizedBox(height: 14),
           _continueCard(courseById('c5')),
           const SizedBox(height: 22),
@@ -415,7 +426,7 @@ class _indexState extends State<index> {
     );
   }
 
-  Widget _rowTitle(String title) {
+  Widget _rowTitle(String title, {VoidCallback? onSeeAll}) {
     return Row(
       children: [
         Text(
@@ -427,12 +438,19 @@ class _indexState extends State<index> {
           ),
         ),
         const Spacer(),
-        const Text(
-          'See all',
-          style: TextStyle(
-            color: _purple,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onSeeAll,
+          child: const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+            child: Text(
+              'See all',
+              style: TextStyle(
+                color: _purple,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ),
       ],

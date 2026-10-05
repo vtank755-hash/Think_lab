@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'cart.dart';
 import 'cart_page.dart';
 import 'course.dart';
+import 'purchases.dart';
+import 'session.dart';
 
 const _heading = Color(0xFF2B2356);
 const _muted = Color(0xFF9A96B8);
@@ -54,17 +56,24 @@ class _CourseDetailsState extends State<CourseDetails> {
     );
   }
 
-  /// Adds THIS course to the cart and opens the cart page straight away —
-  /// no notification/snackbar in between (addToCart ignores duplicates).
-  void _addToCart() {
-    addToCart(course);
+  void _openCart() {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const CartPage()),
     );
   }
 
-  void _enroll() => _snack('Enrolled in ${course.title} — ${course.price}');
+  /// Adds THIS course to the cart and opens the cart page straight away —
+  /// no notification in between (addToCart never creates duplicates).
+  ///
+  /// There is deliberately NO direct payment here: the only way to pay is
+  /// Cart → Pay Now → Checkout.
+  void _addToCart() {
+    addToCart(course);
+    _openCart();
+  }
+
+  void _startLearning() => _snack('Starting ${course.title} …');
 
   @override
   Widget build(BuildContext context) {
@@ -436,6 +445,14 @@ class _CourseDetailsState extends State<CourseDetails> {
 
   // ---------------------------------------------------------- bottom bar
 
+  /// Bottom bar — the button follows the course's state:
+  ///
+  /// * not in cart       → [ Add to Cart ]
+  /// * in the cart       → [ Go to Cart ]
+  /// * already purchased → \u2713 Course Unlocked + [ Start Learning ]
+  ///
+  /// The purchase check is ALWAYS "signed-in user id + course id" (never one
+  /// global flag), so user A can own a course that user B does not.
   Widget _buyBar() {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
@@ -451,64 +468,146 @@ class _CourseDetailsState extends State<CourseDetails> {
       ),
       child: SafeArea(
         top: false,
-        child: Row(
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Price',
-                  style: TextStyle(color: _muted, fontSize: 12),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  course.price,
-                  style: const TextStyle(
-                    color: _purple,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(width: 18),
-            Expanded(
-              child: OutlinedButton(
-                onPressed: _addToCart,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: _purple,
-                  side: const BorderSide(color: _purple, width: 1.5),
-                  padding: const EdgeInsets.symmetric(vertical: 13),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(28),
-                  ),
-                ),
-                child: const Text(
-                  'Add to Cart',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: FilledButton(
-                onPressed: _enroll,
-                style: FilledButton.styleFrom(
-                  backgroundColor: _purple,
-                  padding: const EdgeInsets.symmetric(vertical: 13),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(28),
-                  ),
-                ),
-                child: const Text(
-                  'Enroll Now',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-                ),
-              ),
-            ),
-          ],
+        child: ValueListenableBuilder<String>(
+          valueListenable: currentUser,
+          builder: (context, user, _) {
+            return ValueListenableBuilder<Set<String>>(
+              valueListenable: purchasesOf(user),
+              builder: (context, bought, _) {
+                final purchased = bought.contains(course.id);
+                return ValueListenableBuilder<Set<String>>(
+                  valueListenable: cartIds,
+                  builder: (context, inCartIds, _) {
+                    final inCart = inCartIds.contains(course.id);
+
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (purchased) ...[
+                          const _UnlockedBanner(),
+                          const SizedBox(height: 12),
+                        ],
+                        Row(
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text(
+                                  'Price',
+                                  style: TextStyle(color: _muted, fontSize: 12),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  course.price,
+                                  style: const TextStyle(
+                                    color: _purple,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(width: 18),
+                            Expanded(
+                              child: _stateButton(
+                                purchased: purchased,
+                                inCart: inCart,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    );
+                  },
+                );
+              },
+            );
+          },
         ),
+      ),
+    );
+  }
+
+  /// The single action button for the current state of this course.
+  Widget _stateButton({required bool purchased, required bool inCart}) {
+    if (purchased) {
+      return FilledButton(
+        onPressed: _startLearning,
+        style: FilledButton.styleFrom(
+          backgroundColor: _purple,
+          padding: const EdgeInsets.symmetric(vertical: 13),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
+        ),
+        child: const Text(
+          'Start Learning',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+        ),
+      );
+    }
+
+    if (inCart) {
+      return FilledButton(
+        onPressed: _openCart,
+        style: FilledButton.styleFrom(
+          backgroundColor: _purple,
+          padding: const EdgeInsets.symmetric(vertical: 13),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
+        ),
+        child: const Text(
+          'Go to Cart',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+        ),
+      );
+    }
+
+    return OutlinedButton(
+      onPressed: _addToCart,
+      style: OutlinedButton.styleFrom(
+        foregroundColor: _purple,
+        side: const BorderSide(color: _purple, width: 1.5),
+        padding: const EdgeInsets.symmetric(vertical: 13),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      ),
+      child: const Text(
+        'Add to Cart',
+        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+      ),
+    );
+  }
+}
+
+/// Green "✓ Course Unlocked" banner shown once the course is purchased.
+class _UnlockedBanner extends StatelessWidget {
+  const _UnlockedBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE4F7EC),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.check_circle_rounded, color: Color(0xFF25A55F), size: 18),
+          SizedBox(width: 8),
+          Text(
+            'Course Unlocked',
+            style: TextStyle(
+              color: Color(0xFF1E8E4E),
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
       ),
     );
   }
