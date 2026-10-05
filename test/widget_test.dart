@@ -18,8 +18,9 @@ void main() {
     expect(find.text('Enter'), findsOneWidget);
   });
 
-  testWidgets('Enter opens login screen immediately',
-      (WidgetTester tester) async {
+  testWidgets('Enter opens login screen immediately', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(const LearnHubApp());
     await tester.tap(find.text('Enter'));
     await tester.pumpAndSettle();
@@ -28,8 +29,9 @@ void main() {
     expect(find.text('Welcome back'), findsOneWidget);
   });
 
-  testWidgets('automatically opens login screen after three seconds',
-      (WidgetTester tester) async {
+  testWidgets('automatically opens login screen after three seconds', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(const LearnHubApp());
     await tester.pump(const Duration(seconds: 3));
     await tester.pumpAndSettle();

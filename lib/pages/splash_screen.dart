@@ -21,13 +21,11 @@ class _SplashScreenState extends State<SplashScreen> {
 
   void _navigateToLogin() {
     if (!mounted) return;
-    
+
     // Use pushReplacement so user cannot return to splash screen
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
-        builder: (context) => const login_user(),
-      ),
+      MaterialPageRoute(builder: (context) => const login_user()),
     );
   }
 
@@ -78,7 +76,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 ),
               ),
               const SizedBox(height: 40),
-              
+
               // App Name
               const Text(
                 'LearnHub',
@@ -90,7 +88,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               // Tagline
               Text(
                 'Learn Anytime, Anywhere',
@@ -102,7 +100,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 ),
               ),
               const SizedBox(height: 60),
-              
+
               // Loading indicator
               SizedBox(
                 width: 50,

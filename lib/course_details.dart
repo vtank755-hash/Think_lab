@@ -1,15 +1,25 @@
 import 'package:flutter/material.dart';
 
+import 'cart.dart';
+import 'cart_page.dart';
 import 'course.dart';
 
+const _heading = Color(0xFF2B2356);
+const _muted = Color(0xFF9A96B8);
+const _accent = Color(0xFF7B5CFF);
 const _purple = Color(0xFF6B45F0);
-const _title = Color(0xFF1C1C28);
-const _grey = Color(0xFF8E8EA9);
 const _chipBg = Color(0xFFF4F1FF);
 const _star = Color(0xFFF5A623);
 
-/// Full page for a single course: preview, stats, description, curriculum
-/// and the price / cart / enrol actions.
+/// The single, reusable course details page.
+///
+/// It holds no course data of its own: everything on screen comes from the
+/// [course] that was passed in, including the price and the favourite state.
+///
+/// ```dart
+/// Navigator.push(context,
+///   MaterialPageRoute(builder: (_) => CourseDetails(course: course)));
+/// ```
 class CourseDetails extends StatefulWidget {
   final Course course;
 
@@ -20,42 +30,113 @@ class CourseDetails extends StatefulWidget {
 }
 
 class _CourseDetailsState extends State<CourseDetails> {
-  bool _liked = false;
-
   Course get course => widget.course;
 
-  void _showMessage(String message) {
+  void _snack(String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: _heading,
+          duration: const Duration(seconds: 2),
+        ),
+      );
   }
+
+  void _toggleFavorite() {
+    toggleFavorite(course);
+    _snack(
+      isFavorite(course)
+          ? '${course.title} added to favourites'
+          : '${course.title} removed from favourites',
+    );
+  }
+
+  /// Adds THIS course to the cart and opens the cart page straight away —
+  /// no notification/snackbar in between (addToCart ignores duplicates).
+  void _addToCart() {
+    addToCart(course);
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const CartPage()),
+    );
+  }
+
+  void _enroll() => _snack('Enrolled in ${course.title} — ${course.price}');
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SingleChildScrollView(
-        child: Stack(
-          children: [
-            _previewImage(),
-            Padding(
-              padding: const EdgeInsets.only(top: 268),
-              child: _detailsSheet(),
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: 110),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _hero(),
+                Transform.translate(
+                  offset: const Offset(0, -26),
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(22, 24, 22, 26),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(28),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _tag(),
+                        const SizedBox(height: 14),
+                        _title(),
+                        const SizedBox(height: 18),
+                        _instructor(),
+                        const SizedBox(height: 20),
+                        _stats(),
+                        const SizedBox(height: 26),
+                        _sectionHeading('Description'),
+                        const SizedBox(height: 10),
+                        Text(
+                          course.description,
+                          style: const TextStyle(
+                            color: _muted,
+                            fontSize: 14,
+                            height: 1.55,
+                          ),
+                        ),
+                        if (course.lessons.isNotEmpty) ...[
+                          const SizedBox(height: 26),
+                          _sectionHeading('Curriculum'),
+                          const SizedBox(height: 14),
+                          for (final lesson in course.lessons) ...[
+                            _lesson(lesson),
+                            const SizedBox(height: 12),
+                          ],
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+          Positioned(left: 0, right: 0, bottom: 0, child: _buyBar()),
+        ],
       ),
-      bottomNavigationBar: _purchaseBar(),
     );
   }
 
-  // -------------------------------------------------------------------------
-  // Preview with back / favourite / play controls
-  // -------------------------------------------------------------------------
+  // ---------------------------------------------------------------- hero
 
-  Widget _previewImage() {
+  Widget _hero() {
     return SizedBox(
-      height: 320,
+      height: 290,
+      width: double.infinity,
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -63,9 +144,12 @@ class _CourseDetailsState extends State<CourseDetails> {
             course.image,
             fit: BoxFit.cover,
             errorBuilder: (_, __, ___) => Container(
-              color: const Color(0xFF2B2356),
-              child: const Icon(Icons.code_rounded,
-                  color: Colors.white70, size: 64),
+              color: const Color(0xFF241C4A),
+              child: const Icon(
+                Icons.code_rounded,
+                color: Colors.white54,
+                size: 64,
+              ),
             ),
           ),
           const DecoratedBox(
@@ -73,47 +157,36 @@ class _CourseDetailsState extends State<CourseDetails> {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Colors.transparent, Color(0x66000000)],
+                colors: [Color(0x33000000), Color(0x00000000)],
               ),
             ),
           ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(18, 8, 18, 0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _roundButton(
-                    icon: Icons.arrow_back_rounded,
-                    onTap: () => Navigator.pop(context),
-                  ),
-                  _roundButton(
-                    icon: _liked ? Icons.favorite : Icons.favorite_border,
-                    color: _liked ? const Color(0xFFFF4D6D) : _title,
-                    onTap: () => setState(() => _liked = !_liked),
-                  ),
-                ],
-              ),
+          Positioned(
+            left: 18,
+            top: 18,
+            child: _roundButton(
+              icon: Icons.swap_horiz,
+              onTap: () => Navigator.pop(context),
             ),
           ),
-          Center(
+          Positioned(right: 18, top: 18, child: _favoriteButton()),
+          Positioned(
+            left: 28,
+            bottom: 52,
             child: GestureDetector(
-              onTap: () => _showMessage('Playing preview…'),
+              onTap: () => _snack('Playing preview of ${course.title}'),
               child: Container(
-                width: 68,
-                height: 68,
-                decoration: BoxDecoration(
+                width: 64,
+                height: 64,
+                decoration: const BoxDecoration(
                   color: Colors.white,
                   shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.18),
-                      blurRadius: 16,
-                    ),
-                  ],
                 ),
-                child: const Icon(Icons.play_arrow_rounded,
-                    color: _purple, size: 40),
+                child: const Icon(
+                  Icons.play_arrow_rounded,
+                  color: _purple,
+                  size: 34,
+                ),
               ),
             ),
           ),
@@ -122,16 +195,31 @@ class _CourseDetailsState extends State<CourseDetails> {
     );
   }
 
+  /// Favourite state of the clicked course, shared with the rest of the app.
+  Widget _favoriteButton() {
+    return ValueListenableBuilder<Set<String>>(
+      valueListenable: favoriteIds,
+      builder: (context, ids, _) {
+        final liked = ids.contains(course.id);
+        return _roundButton(
+          icon: liked ? Icons.favorite : Icons.favorite_border,
+          color: liked ? const Color(0xFFFF4D6D) : _heading,
+          onTap: _toggleFavorite,
+        );
+      },
+    );
+  }
+
   Widget _roundButton({
     required IconData icon,
     required VoidCallback onTap,
-    Color color = _title,
+    Color color = _heading,
   }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 42,
-        height: 42,
+        width: 44,
+        height: 44,
         decoration: const BoxDecoration(
           color: Colors.white,
           shape: BoxShape.circle,
@@ -141,83 +229,34 @@ class _CourseDetailsState extends State<CourseDetails> {
     );
   }
 
-  // -------------------------------------------------------------------------
-  // Course content
-  // -------------------------------------------------------------------------
+  // ------------------------------------------------------------- content
 
-  Widget _detailsSheet() {
+  Widget _tag() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(22, 26, 22, 24),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _tagChip(course.tag),
-          const SizedBox(height: 14),
-          Text(
-            course.title,
-            style: const TextStyle(
-              color: _title,
-              fontSize: 27,
-              fontWeight: FontWeight.w800,
-              height: 1.2,
-            ),
-          ),
-          const SizedBox(height: 18),
-          _instructor(),
-          const SizedBox(height: 18),
-          _stats(),
-          const SizedBox(height: 24),
-          _sectionTitle('Description'),
-          const SizedBox(height: 10),
-          Text(
-            course.description,
-            style: const TextStyle(
-              color: _grey,
-              fontSize: 14,
-              height: 1.65,
-            ),
-          ),
-          const SizedBox(height: 24),
-          _sectionTitle('Curriculum'),
-          const SizedBox(height: 14),
-          for (final lesson in course.curriculum) ...[
-            _lessonRow(lesson),
-            const SizedBox(height: 10),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _tagChip(String tag) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: _chipBg,
-        borderRadius: BorderRadius.circular(8),
+        color: const Color(0xFFEEE9FF),
+        borderRadius: BorderRadius.circular(10),
       ),
       child: Text(
-        tag,
+        course.category,
         style: const TextStyle(
           color: _purple,
           fontSize: 12,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
   }
 
-  Widget _sectionTitle(String text) {
+  Widget _title() {
     return Text(
-      text,
+      course.title,
       style: const TextStyle(
-        color: _title,
-        fontSize: 17,
-        fontWeight: FontWeight.w700,
+        color: _heading,
+        fontSize: 26,
+        fontWeight: FontWeight.w800,
+        height: 1.15,
       ),
     );
   }
@@ -227,7 +266,7 @@ class _CourseDetailsState extends State<CourseDetails> {
       children: [
         ClipOval(
           child: Image.network(
-            'https://i.pravatar.cc/120?u=${course.author}',
+            'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
             width: 46,
             height: 46,
             fit: BoxFit.cover,
@@ -240,23 +279,25 @@ class _CourseDetailsState extends State<CourseDetails> {
           ),
         ),
         const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              course.author,
-              style: const TextStyle(
-                color: _title,
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                course.instructor,
+                style: const TextStyle(
+                  color: _heading,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              course.authorRole,
-              style: const TextStyle(color: _purple, fontSize: 13),
-            ),
-          ],
+              const SizedBox(height: 2),
+              Text(
+                course.instructorRole,
+                style: const TextStyle(color: _accent, fontSize: 13),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -266,76 +307,103 @@ class _CourseDetailsState extends State<CourseDetails> {
     return Row(
       children: [
         _statCard(
-          value: Row(
+          child: Row(
             mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.star_rounded, size: 17, color: _star),
+              const Icon(Icons.star_rounded, color: _star, size: 18),
               const SizedBox(width: 4),
-              Text(course.rating, style: const TextStyle(fontSize: 16)),
+              Text(
+                course.rating,
+                style: const TextStyle(
+                  color: _heading,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
             ],
           ),
           label: 'Rating',
         ),
+        const SizedBox(width: 10),
         _statCard(
-          value: Text(course.students, style: const TextStyle(fontSize: 16)),
+          child: Text(
+            course.students,
+            style: const TextStyle(
+              color: _heading,
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
           label: 'Students',
         ),
+        const SizedBox(width: 10),
         _statCard(
-          value: Text(course.duration, style: const TextStyle(fontSize: 16)),
+          child: Text(
+            course.duration,
+            style: const TextStyle(
+              color: _heading,
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
           label: 'Duration',
         ),
       ],
     );
   }
 
-  Widget _statCard({required Widget value, required String label}) {
+  Widget _statCard({required Widget child, required String label}) {
     return Expanded(
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 5),
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
         decoration: BoxDecoration(
           color: _chipBg,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
         ),
         child: Column(
           children: [
-            DefaultTextStyle(
-              style: const TextStyle(
-                color: _title,
-                fontWeight: FontWeight.w700,
-                fontSize: 16,
-              ),
-              child: value,
-            ),
+            child,
             const SizedBox(height: 4),
-            Text(
-              label,
-              style: const TextStyle(color: _grey, fontSize: 12),
-            ),
+            Text(label, style: const TextStyle(color: _muted, fontSize: 12)),
           ],
         ),
       ),
     );
   }
 
-  Widget _lessonRow(Lesson lesson) {
+  Widget _sectionHeading(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        color: _heading,
+        fontSize: 17,
+        fontWeight: FontWeight.w800,
+      ),
+    );
+  }
+
+  Widget _lesson(Lesson lesson) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF7F6FC),
-        borderRadius: BorderRadius.circular(16),
+        color: _chipBg,
+        borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 42,
+            height: 42,
             decoration: BoxDecoration(
               color: _purple,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(13),
             ),
-            child: const Icon(Icons.computer_rounded,
-                color: Colors.white, size: 20),
+            child: const Icon(
+              Icons.desktop_mac_outlined,
+              color: Colors.white,
+              size: 20,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -344,33 +412,33 @@ class _CourseDetailsState extends State<CourseDetails> {
               children: [
                 Text(
                   lesson.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: _title,
+                    color: _heading,
                     fontSize: 14,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   lesson.meta,
-                  style: const TextStyle(color: _grey, fontSize: 12),
+                  style: const TextStyle(color: _muted, fontSize: 12),
                 ),
               ],
             ),
           ),
-          const Icon(Icons.chevron_right_rounded, color: _grey),
+          const Icon(Icons.chevron_right_rounded, color: _muted),
         ],
       ),
     );
   }
 
-  // -------------------------------------------------------------------------
-  // Price + actions
-  // -------------------------------------------------------------------------
+  // ---------------------------------------------------------- bottom bar
 
-  Widget _purchaseBar() {
+  Widget _buyBar() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -391,50 +459,52 @@ class _CourseDetailsState extends State<CourseDetails> {
               children: [
                 const Text(
                   'Price',
-                  style: TextStyle(color: _grey, fontSize: 12),
+                  style: TextStyle(color: _muted, fontSize: 12),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   course.price,
                   style: const TextStyle(
                     color: _purple,
-                    fontSize: 22,
+                    fontSize: 20,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
               ],
             ),
-            const Spacer(),
-            OutlinedButton(
-              onPressed: () => _showMessage('${course.title} added to cart'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: _purple,
-                side: const BorderSide(color: _purple),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+            const SizedBox(width: 18),
+            Expanded(
+              child: OutlinedButton(
+                onPressed: _addToCart,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: _purple,
+                  side: const BorderSide(color: _purple, width: 1.5),
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(28),
+                  ),
                 ),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 18, vertical: 14),
-              ),
-              child: const Text(
-                'Add to Cart',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                child: const Text(
+                  'Add to Cart',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                ),
               ),
             ),
             const SizedBox(width: 10),
-            FilledButton(
-              onPressed: () => _showMessage('Enrolling in ${course.title}'),
-              style: FilledButton.styleFrom(
-                backgroundColor: _purple,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+            Expanded(
+              child: FilledButton(
+                onPressed: _enroll,
+                style: FilledButton.styleFrom(
+                  backgroundColor: _purple,
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(28),
+                  ),
                 ),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 22, vertical: 14),
-              ),
-              child: const Text(
-                'Enrol Now',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                child: const Text(
+                  'Enroll Now',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                ),
               ),
             ),
           ],

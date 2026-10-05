@@ -10,8 +10,13 @@ const _purple = Color(0xFF6B45F0);
 const _chipBg = Color(0xFFF4F1FF);
 const _star = Color(0xFFF5A623);
 
-const _recentSearches = ['Python', 'Figma', 'SEO', 'Excel'];
-const _popularSearches = ['React JS', 'Data Science', 'UI Design', 'Marketing'];
+const _recentSearches = ['Python', 'Design', 'Marketing', 'Business'];
+const _popularSearches = [
+  'Development',
+  'UI/UX',
+  'IT & Software',
+  'Productivity',
+];
 
 class Searches extends StatefulWidget {
   const Searches({super.key});
@@ -22,7 +27,6 @@ class Searches extends StatefulWidget {
 
 class _SearchesState extends State<Searches> {
   final searchBox = TextEditingController();
-  final Set<String> _liked = {'React JS from Zero to Hero'};
 
   @override
   void dispose() {
@@ -31,24 +35,10 @@ class _SearchesState extends State<Searches> {
   }
 
   List<Course> get _results =>
-      courseCatalog.where((c) => c.matches(searchBox.text)).toList();
+      allCourses.where((c) => c.matches(searchBox.text)).toList();
 
   void _runSearch(String query) {
     setState(() => searchBox.text = query);
-  }
-
-  /// Opens the full details page for a course the user tapped.
-  void _openCourse(Course course) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => CourseDetails(course: course)),
-    );
-  }
-
-  void _toggleLike(Course course) {
-    setState(() {
-      if (!_liked.remove(course.title)) _liked.add(course.title);
-    });
   }
 
   @override
@@ -76,19 +66,18 @@ class _SearchesState extends State<Searches> {
               const SizedBox(height: 10),
               _chipRow(_popularSearches),
               const SizedBox(height: 22),
-              _sectionTitle(searching
-                  ? 'Results (${results.length})'
-                  : 'Search Courses'),
+              _sectionTitle(
+                searching ? 'Results (${results.length})' : 'Search Courses',
+              ),
               const SizedBox(height: 14),
               if (results.isEmpty)
                 _emptyState()
-              else
-                ...[
-                  for (var i = 0; i < results.length; i++) ...[
-                    _courseCard(results[i]),
-                    if (i != results.length - 1) const SizedBox(height: 12),
-                  ],
+              else ...[
+                for (var i = 0; i < results.length; i++) ...[
+                  _courseCard(results[i]),
+                  if (i != results.length - 1) const SizedBox(height: 12),
                 ],
+              ],
             ],
           ),
         ),
@@ -108,11 +97,7 @@ class _SearchesState extends State<Searches> {
               color: _chipBg,
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.swap_horiz,
-              color: _heading,
-              size: 22,
-            ),
+            child: const Icon(Icons.swap_horiz, color: _heading, size: 22),
           ),
         ),
         const SizedBox(width: 10),
@@ -150,8 +135,11 @@ class _SearchesState extends State<Searches> {
                 if (searchBox.text.isNotEmpty)
                   GestureDetector(
                     onTap: () => setState(() => searchBox.clear()),
-                    child: const Icon(Icons.close_rounded,
-                        color: _muted, size: 18),
+                    child: const Icon(
+                      Icons.close_rounded,
+                      color: _muted,
+                      size: 18,
+                    ),
                   ),
               ],
             ),
@@ -192,8 +180,10 @@ class _SearchesState extends State<Searches> {
             GestureDetector(
               onTap: () => _runSearch(chips[i]),
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 7,
+                ),
                 decoration: BoxDecoration(
                   color: _chipBg,
                   borderRadius: BorderRadius.circular(20),
@@ -245,123 +235,128 @@ class _SearchesState extends State<Searches> {
     );
   }
 
-  /// One search result. Tapping the card opens the course details page.
   Widget _courseCard(Course course) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () => _openCourse(course),
-      child: _courseCardContents(course, _liked.contains(course.title)),
-    );
-  }
-
-  /// The card itself: image, title, rating, price and the favourite toggle.
-  Widget _courseCardContents(Course course, bool liked) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0D000000),
-            blurRadius: 12,
-            offset: Offset(0, 4),
-          ),
-        ],
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => CourseDetails(course: course)),
       ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(14),
-            child: Image.network(
-              course.image,
-              width: 72,
-              height: 72,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0D000000),
+              blurRadius: 12,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Image.network(
+                course.image,
                 width: 72,
                 height: 72,
-                color: _chipBg,
-                child: const Icon(Icons.play_circle_outline, color: _accent),
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  width: 72,
+                  height: 72,
+                  color: _chipBg,
+                  child: const Icon(Icons.play_circle_outline, color: _accent),
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  course.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _heading,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    height: 1.2,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  'By ${course.author}',
-                  style: const TextStyle(color: _muted, fontSize: 12),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(Icons.star_rounded, size: 16, color: _star),
-                    const SizedBox(width: 3),
-                    Text(
-                      course.rating,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    course.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: _heading,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      height: 1.2,
                     ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: _chipBg,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        course.tag,
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'By ${course.instructor}',
+                    style: const TextStyle(color: _muted, fontSize: 12),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(Icons.star_rounded, size: 16, color: _star),
+                      const SizedBox(width: 3),
+                      Text(
+                        course.rating,
                         style: const TextStyle(
-                          color: _accent,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      course.price,
-                      style: const TextStyle(
-                        color: _purple,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _chipBg,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          course.category,
+                          style: const TextStyle(
+                            color: _accent,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          GestureDetector(
-            onTap: () => _toggleLike(course),
-            child: Padding(
-              padding: const EdgeInsets.only(left: 6, bottom: 36),
-              child: Icon(
-                liked ? Icons.favorite : Icons.favorite_border,
-                color: const Color(0xFFFF4D6D),
-                size: 22,
+                      const Spacer(),
+                      Text(
+                        course.price,
+                        style: const TextStyle(
+                          color: _purple,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ),
-        ],
+            ValueListenableBuilder<Set<String>>(
+              valueListenable: favoriteIds,
+              builder: (context, ids, _) {
+                final liked = ids.contains(course.id);
+                return GestureDetector(
+                  onTap: () => toggleFavorite(course),
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 6, bottom: 36),
+                    child: Icon(
+                      liked ? Icons.favorite : Icons.favorite_border,
+                      color: const Color(0xFFFF4D6D),
+                      size: 22,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

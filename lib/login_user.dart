@@ -57,9 +57,7 @@ class _login_userState extends State<login_user> {
     if (_formKey.currentState?.validate() ?? false) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (context) => const index(),
-        ),
+        MaterialPageRoute(builder: (context) => const index()),
       );
     }
   }
@@ -84,14 +82,24 @@ class _login_userState extends State<login_user> {
                       children: [
                         _logo(),
                         const SizedBox(height: 38),
-                        const Text('Welcome back', style: TextStyle(
-                          color: _heading, fontSize: 40,
-                          fontWeight: FontWeight.bold, height: 1.1,
-                        )),
+                        const Text(
+                          'Welcome back',
+                          style: TextStyle(
+                            color: _heading,
+                            fontSize: 40,
+                            fontWeight: FontWeight.bold,
+                            height: 1.1,
+                          ),
+                        ),
                         const SizedBox(height: 12),
-                        const Text('Log in to continue learning.', style: TextStyle(
-                          color: _muted, fontSize: 20, fontWeight: FontWeight.w500,
-                        )),
+                        const Text(
+                          'Log in to continue learning.',
+                          style: TextStyle(
+                            color: _muted,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                         const SizedBox(height: 42),
                         const _FieldLabel('EMAIL'),
                         const SizedBox(height: 10),
@@ -111,14 +119,20 @@ class _login_userState extends State<login_user> {
                               borderRadius: BorderRadius.circular(20),
                               borderSide: BorderSide.none,
                             ),
-                            prefixIcon: const Icon(Icons.email_outlined, color: _primary, size: 25),
+                            prefixIcon: const Icon(
+                              Icons.email_outlined,
+                              color: _primary,
+                              size: 25,
+                            ),
                             hintText: 'you@email.com',
                             hintStyle: const TextStyle(
                               color: Colors.black54,
                               fontSize: 18,
                               fontWeight: FontWeight.w500,
                             ),
-                            contentPadding: const EdgeInsets.symmetric(vertical: 19),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 19,
+                            ),
                             errorStyle: const TextStyle(
                               color: Colors.red,
                               fontSize: 14,
@@ -145,7 +159,11 @@ class _login_userState extends State<login_user> {
                               borderRadius: BorderRadius.circular(20),
                               borderSide: BorderSide.none,
                             ),
-                            prefixIcon: const Icon(Icons.lock_outline, color: _primary, size: 25),
+                            prefixIcon: const Icon(
+                              Icons.lock_outline,
+                              color: _primary,
+                              size: 25,
+                            ),
                             suffixIcon: GestureDetector(
                               onTap: () {
                                 setState(() {
@@ -153,7 +171,9 @@ class _login_userState extends State<login_user> {
                                 });
                               },
                               child: Icon(
-                                _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                                _obscurePassword
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
                                 color: _primary,
                                 size: 25,
                               ),
@@ -164,7 +184,9 @@ class _login_userState extends State<login_user> {
                               fontSize: 18,
                               fontWeight: FontWeight.w500,
                             ),
-                            contentPadding: const EdgeInsets.symmetric(vertical: 19),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 19,
+                            ),
                             errorStyle: const TextStyle(
                               color: Colors.red,
                               fontSize: 14,
@@ -172,8 +194,10 @@ class _login_userState extends State<login_user> {
                           ),
                         ),
                         const SizedBox(height: 18),
-                        Align(alignment: Alignment.centerRight,
-                          child: Text('Forgot Password?', style: _link(18))),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: Text('Forgot Password?', style: _link(18)),
+                        ),
                         const SizedBox(height: 25),
                         GestureDetector(
                           onTap: _submitLogin,
@@ -181,15 +205,20 @@ class _login_userState extends State<login_user> {
                             width: double.infinity,
                             height: 74,
                             decoration: BoxDecoration(
-                              gradient: const LinearGradient(colors: [_primary, _indigo]),
+                              gradient: const LinearGradient(
+                                colors: [_primary, _indigo],
+                              ),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             alignment: Alignment.center,
-                            child: const Text('Login', style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                            )),
+                            child: const Text(
+                              'Login',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(height: 48),
@@ -197,7 +226,10 @@ class _login_userState extends State<login_user> {
                           child: Text.rich(
                             TextSpan(
                               text: "Don't have an account? ",
-                              style: const TextStyle(color: _muted, fontSize: 18),
+                              style: const TextStyle(
+                                color: _muted,
+                                fontSize: 18,
+                              ),
                               children: [
                                 TextSpan(
                                   text: 'Sign Up',
@@ -211,7 +243,8 @@ class _login_userState extends State<login_user> {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (context) => const register_user(),
+                                          builder: (context) =>
+                                              const register_user(),
                                         ),
                                       );
                                     },
@@ -221,9 +254,16 @@ class _login_userState extends State<login_user> {
                           ),
                         ),
                         const SizedBox(height: 32),
-                        const Center(child: Text('Admin? Admin Login', style: TextStyle(
-                          color: _muted, fontSize: 16, fontWeight: FontWeight.w500,
-                        ))),
+                        const Center(
+                          child: Text(
+                            'Admin? Admin Login',
+                            style: TextStyle(
+                              color: _muted,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -237,15 +277,22 @@ class _login_userState extends State<login_user> {
   }
 
   Widget _logo() => Container(
-    width: 76, height: 76,
+    width: 76,
+    height: 76,
     decoration: BoxDecoration(
       gradient: const LinearGradient(colors: [_primary, _indigo]),
       borderRadius: BorderRadius.circular(20),
     ),
-    child: Center(child: CustomPaint(size: const Size(38, 38), painter: _LogoPainter())),
+    child: Center(
+      child: CustomPaint(size: const Size(38, 38), painter: _LogoPainter()),
+    ),
   );
 
-  static TextStyle _link(double size) => TextStyle(color: Colors.black, fontSize: size, fontWeight: FontWeight.w700);
+  static TextStyle _link(double size) => TextStyle(
+    color: Colors.black,
+    fontSize: size,
+    fontWeight: FontWeight.w700,
+  );
 }
 
 class _FieldLabel extends StatelessWidget {
@@ -253,9 +300,15 @@ class _FieldLabel extends StatelessWidget {
   final String label;
 
   @override
-  Widget build(BuildContext context) => Text(label, style: const TextStyle(
-    color: Color.fromARGB(255, 0, 0, 0), fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 1.1,
-  ));
+  Widget build(BuildContext context) => Text(
+    label,
+    style: const TextStyle(
+      color: Color.fromARGB(255, 0, 0, 0),
+      fontSize: 16,
+      fontWeight: FontWeight.w700,
+      letterSpacing: 1.1,
+    ),
+  );
 }
 
 class _LogoPainter extends CustomPainter {
@@ -270,13 +323,21 @@ class _LogoPainter extends CustomPainter {
     final path = Path()
       ..moveTo(size.width * .85, size.height * .32)
       ..lineTo(size.width * .46, size.height * .32)
-      ..arcToPoint(Offset(size.width * .46, size.height * .68), radius: Radius.circular(size.height * .18), clockwise: false)
+      ..arcToPoint(
+        Offset(size.width * .46, size.height * .68),
+        radius: Radius.circular(size.height * .18),
+        clockwise: false,
+      )
       ..lineTo(size.width * .85, size.height * .68);
     canvas.drawPath(path, paint);
     final center = Offset(size.width * .5, size.height * .5);
     final radius = size.width * .085;
     canvas.drawCircle(center, radius, paint);
-    canvas.drawLine(Offset(center.dx + radius, center.dy), Offset(size.width * .85, center.dy), paint);
+    canvas.drawLine(
+      Offset(center.dx + radius, center.dy),
+      Offset(size.width * .85, center.dy),
+      paint,
+    );
   }
 
   @override

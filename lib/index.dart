@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'categories.dart';
+import 'cart.dart';
+import 'cart_page.dart';
+import 'course.dart';
+import 'course_details.dart';
 import 'Searches.dart';
+import 'widgets/nav_bar.dart';
 
 const _purple = Color(0xFF6B45F0);
 const _purpleDark = Color(0xFF5A36E0);
@@ -20,7 +25,6 @@ class index extends StatefulWidget {
 class _indexState extends State<index> {
   int _tab = 0;
   int _cat = 1;
-  final Set<int> _liked = {0};
 
   final _cats = const [
     {'name': 'Dev', 'icon': Icons.code},
@@ -33,9 +37,15 @@ class _indexState extends State<index> {
   void _openSearches() {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const Searches(),
-      ),
+      MaterialPageRoute(builder: (context) => const Searches()),
+    );
+  }
+
+  /// Opens the full details page for a course card.
+  void _openCourse(Course course) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => CourseDetails(course: course)),
     );
   }
 
@@ -43,10 +53,11 @@ class _indexState extends State<index> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _pageBg,
-      body: SafeArea(
-        child: _tab == 0 ? _home() : _otherTab(),
+      body: SafeArea(child: _tab == 0 ? _home() : _otherTab()),
+      bottomNavigationBar: NavBar(
+        currentIndex: _tab,
+        onTap: (i) => setState(() => _tab = i),
       ),
-      bottomNavigationBar: _bottomBar(),
     );
   }
 
@@ -77,9 +88,7 @@ class _indexState extends State<index> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (context) => const categories(),
-                    ),
+                    MaterialPageRoute(builder: (context) => const categories()),
                   );
                 },
                 child: const Padding(
@@ -105,7 +114,7 @@ class _indexState extends State<index> {
           const SizedBox(height: 22),
           _rowTitle('Continue Learning'),
           const SizedBox(height: 14),
-          _continueCard(),
+          _continueCard(courseById('c5')),
           const SizedBox(height: 22),
           GestureDetector(
             behavior: HitTestBehavior.opaque,
@@ -136,25 +145,9 @@ class _indexState extends State<index> {
             ),
           ),
           const SizedBox(height: 14),
-          _recoCard(
-            0,
-            'https://images.unsplash.com/photo-1552664730-d307ca884978?w=400',
-            'Marketing',
-            'Digital Marketing Complete Guide',
-            'Priya Menon',
-            '4.7',
-            '₹999',
-          ),
+          _recoCard(courseById('c3')),
           const SizedBox(height: 12),
-          _recoCard(
-            1,
-            'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=400',
-            'Management',
-            'Modern Product Management 101',
-            'Rohit Verma',
-            '4.9',
-            '₹1,199',
-          ),
+          _recoCard(courseById('c4')),
           const SizedBox(height: 8),
         ],
       ),
@@ -200,6 +193,63 @@ class _indexState extends State<index> {
             ],
           ),
         ),
+        const SizedBox(width: 10),
+        // Shopping cart with a live count of the courses inside it.
+        ValueListenableBuilder<Set<String>>(
+          valueListenable: cartIds,
+          builder: (context, ids, _) {
+            return GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CartPage()),
+              ),
+              child: Stack(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 8,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.shopping_bag_outlined,
+                      color: _purple,
+                    ),
+                  ),
+                  if (ids.isNotEmpty)
+                    Positioned(
+                      right: 2,
+                      top: 2,
+                      child: Container(
+                        padding: const EdgeInsets.all(5),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFFF4D6D),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          '${ids.length}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            );
+          },
+        ),
+        const SizedBox(width: 10),
         Stack(
           children: [
             Container(
@@ -215,7 +265,10 @@ class _indexState extends State<index> {
                   ),
                 ],
               ),
-              child: const Icon(Icons.notifications_none_rounded, color: _purple),
+              child: const Icon(
+                Icons.notifications_none_rounded,
+                color: _purple,
+              ),
             ),
             Positioned(
               right: 11,
@@ -318,7 +371,10 @@ class _indexState extends State<index> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(20),
@@ -399,9 +455,7 @@ class _indexState extends State<index> {
               });
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const categories(),
-                ),
+                MaterialPageRoute(builder: (context) => const categories()),
               );
             },
             child: Column(
@@ -451,347 +505,337 @@ class _indexState extends State<index> {
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: [
-          _popCard(
-            'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600',
-            'Development',
-            'Full-stack Web Dev Bootcamp',
-            'Alex Chen',
-            '4.8',
-            '(2.4k)',
-            '₹1,499',
-          ),
+          _popCard(courseById('c1')),
+
           const SizedBox(width: 14),
-          _popCard(
-            'https://images.unsplash.com/photo-1581291518857-4d859fc9e0b5?w=600',
-            'Design',
-            'UI/UX Masterclass',
-            'Sarah Jenkins',
-            '4.9',
-            '(1.8k)',
-            '₹1,299',
-          ),
+          _popCard(courseById('c2')),
         ],
       ),
     );
   }
 
-  Widget _popCard(
-    String img,
-    String tag,
-    String name,
-    String teacher,
-    String rating,
-    String reviews,
-    String price,
-  ) {
-    return Container(
-      width: 220,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Stack(
-            children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                child: Image.network(
-                  img,
-                  height: 112,
-                  width: 220,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
+  /// Popular Courses card: renders [course] and opens that course's page.
+  Widget _popCard(Course course) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _openCourse(course),
+      child: Container(
+        width: 220,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(20),
+                  ),
+                  child: Image.network(
+                    course.image,
                     height: 112,
-                    color: const Color(0xFFE8E6F5),
+                    width: 220,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) =>
+                        Container(height: 112, color: const Color(0xFFE8E6F5)),
                   ),
                 ),
-              ),
-              Positioned(
-                left: 10,
-                top: 10,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.92),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    tag,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: _title,
+                Positioned(
+                  left: 10,
+                  top: 10,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
                     ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: _title,
-                    height: 1.25,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'By $teacher',
-                  style: const TextStyle(fontSize: 11, color: _grey),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(Icons.star_rounded, size: 16, color: _star),
-                    const SizedBox(width: 3),
-                    Text(
-                      rating,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.92),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      course.category,
                       style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(width: 3),
-                    Text(
-                      reviews,
-                      style: const TextStyle(fontSize: 11, color: _grey),
-                    ),
-                    const Spacer(),
-                    Text(
-                      price,
-                      style: const TextStyle(
-                        color: _purple,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _continueCard() {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEEE9FF),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(Icons.auto_awesome_mosaic_outlined, color: _purple),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Figma to Code Workflow',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                    color: _title,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                const Text(
-                  'Lesson 14: Responsive Constraints',
-                  style: TextStyle(fontSize: 11, color: _grey),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    const Expanded(
-                      child: Text(
-                        'Course Progress',
-                        style: TextStyle(fontSize: 10, color: _grey),
-                      ),
-                    ),
-                    const Text(
-                      '65%',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
                         color: _title,
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: const LinearProgressIndicator(
-                    value: 0.65,
-                    minHeight: 6,
-                    color: _purple,
-                    backgroundColor: Color(0xFFEDEAF8),
                   ),
                 ),
               ],
             ),
-          ),
-          const SizedBox(width: 10),
-          Container(
-            width: 40,
-            height: 40,
-            decoration: const BoxDecoration(
-              color: _purple,
-              shape: BoxShape.circle,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    course.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: _title,
+                      height: 1.25,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'By ${course.instructor}',
+                    style: const TextStyle(fontSize: 11, color: _grey),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(Icons.star_rounded, size: 16, color: _star),
+                      const SizedBox(width: 3),
+                      Text(
+                        course.rating,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        '(${course.students})',
+                        style: const TextStyle(fontSize: 11, color: _grey),
+                      ),
+                      const Spacer(),
+                      Text(
+                        course.price,
+                        style: const TextStyle(
+                          color: _purple,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-            child: const Icon(Icons.play_arrow_rounded, color: Colors.white),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _recoCard(
-    int id,
-    String img,
-    String tag,
-    String name,
-    String teacher,
-    String rating,
-    String price,
-  ) {
-    final liked = _liked.contains(id);
-
+  /// Continue Learning card: the course the user is working through.
+  Widget _continueCard(Course course) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: _openSearches,
+      onTap: () => _openCourse(course),
       child: Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(14),
-            child: Image.network(
-              img,
-              width: 72,
-              height: 72,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                width: 72,
-                height: 72,
-                color: _chipBg,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEEE9FF),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(
+                Icons.auto_awesome_mosaic_outlined,
+                color: _purple,
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEEE9FF),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    tag,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    course.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: _title,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  const Text(
+                    'Lesson 10: Conditional Logic',
+                    style: TextStyle(fontSize: 11, color: _grey),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'Course Progress',
+                          style: TextStyle(fontSize: 10, color: _grey),
+                        ),
+                      ),
+                      const Text(
+                        '65%',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: _title,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: const LinearProgressIndicator(
+                      value: 0.65,
+                      minHeight: 6,
                       color: _purple,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
+                      backgroundColor: Color(0xFFEDEAF8),
                     ),
                   ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: _title,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'By $teacher',
-                  style: const TextStyle(fontSize: 11, color: _grey),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Icon(Icons.star_rounded, size: 14, color: _star),
-                    const SizedBox(width: 2),
-                    Text(
-                      rating,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      price,
-                      style: const TextStyle(
-                        color: _purple,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          GestureDetector(
-            onTap: () {
-              setState(() {
-                if (liked) {
-                  _liked.remove(id);
-                } else {
-                  _liked.add(id);
-                }
-              });
-            },
-            child: Padding(
-              padding: const EdgeInsets.only(left: 6, bottom: 40),
-              child: Icon(
-                liked ? Icons.favorite : Icons.favorite_border,
-                color: liked ? const Color(0xFFFF4D6D) : _grey,
-                size: 20,
+                ],
               ),
             ),
-          ),
-        ],
+            const SizedBox(width: 10),
+            Container(
+              width: 40,
+              height: 40,
+              decoration: const BoxDecoration(
+                color: _purple,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.play_arrow_rounded, color: Colors.white),
+            ),
+          ],
+        ),
       ),
-    ),
     );
   }
 
+  /// Recommended course card: renders [course] and opens that course's page.
+  Widget _recoCard(Course course) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _openCourse(course),
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Image.network(
+                course.image,
+                width: 72,
+                height: 72,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) =>
+                    Container(width: 72, height: 72, color: _chipBg),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEEE9FF),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      course.category,
+                      style: const TextStyle(
+                        color: _purple,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    course.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: _title,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'By ${course.instructor}',
+                    style: const TextStyle(fontSize: 11, color: _grey),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.star_rounded, size: 14, color: _star),
+                      const SizedBox(width: 2),
+                      Text(
+                        course.rating,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        course.price,
+                        style: const TextStyle(
+                          color: _purple,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            _favoriteIcon(course),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Favourite heart shared with the details page and the search results.
+  Widget _favoriteIcon(Course course) {
+    return ValueListenableBuilder<Set<String>>(
+      valueListenable: favoriteIds,
+      builder: (context, ids, _) {
+        final liked = ids.contains(course.id);
+        return GestureDetector(
+          onTap: () => toggleFavorite(course),
+          child: Padding(
+            padding: const EdgeInsets.only(left: 6, bottom: 40),
+            child: Icon(
+              liked ? Icons.favorite : Icons.favorite_border,
+              color: liked ? const Color(0xFFFF4D6D) : _grey,
+              size: 20,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Placeholder screens for the tabs that are not built yet.
   Widget _otherTab() {
     final labels = ['Home', 'Learning', 'Wishlist', 'Profile'];
     return Center(
@@ -802,58 +846,6 @@ class _indexState extends State<index> {
           fontWeight: FontWeight.w700,
           color: _title,
         ),
-      ),
-    );
-  }
-
-  Widget _bottomBar() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(10, 8, 10, 18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 16,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _navItem(0, Icons.home_rounded, Icons.home_outlined, 'Home'),
-          _navItem(1, Icons.menu_book_rounded, Icons.menu_book_outlined, 'Learning'),
-          _navItem(2, Icons.favorite_rounded, Icons.favorite_border, 'Wishlist'),
-          _navItem(3, Icons.person_rounded, Icons.person_outline, 'Profile'),
-        ],
-      ),
-    );
-  }
-
-  Widget _navItem(int i, IconData filled, IconData outline, String label) {
-    final on = _tab == i;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _tab = i;
-        });
-      },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(on ? filled : outline, color: on ? _purple : _grey, size: 24),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: on ? FontWeight.w700 : FontWeight.w500,
-              color: on ? _purple : _grey,
-            ),
-          ),
-        ],
       ),
     );
   }

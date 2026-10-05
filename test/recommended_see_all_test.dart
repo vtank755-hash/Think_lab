@@ -4,18 +4,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:think_lab/Searches.dart';
 import 'package:think_lab/index.dart';
 
+import 'test_utils.dart';
+
 void main() {
   testWidgets('Recommended "See all" opens the Searches page', (tester) async {
-    // The fixed-width course cards overflow slightly under the test font's
-    // metrics; that is unrelated to the navigation being checked here.
-    final previousOnError = FlutterError.onError;
-    FlutterError.onError = (details) {
-      if (details.exception.toString().contains('overflowed')) {
-        return;
-      }
-      previousOnError?.call(details);
-    };
-    addTearDown(() => FlutterError.onError = previousOnError);
+    ignoreOverflowErrors();
 
     await tester.pumpWidget(const MaterialApp(home: index()));
     await tester.pump(const Duration(seconds: 1));

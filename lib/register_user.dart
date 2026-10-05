@@ -23,7 +23,7 @@ class _register_userState extends State<register_user> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _confirmPassword = TextEditingController();
-  
+
   bool _agreeToTerms = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -105,9 +105,7 @@ class _register_userState extends State<register_user> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text(
-          'Registration details validated successfully!',
-        ),
+        content: Text('Registration details validated successfully!'),
       ),
     );
 
@@ -139,7 +137,7 @@ class _register_userState extends State<register_user> {
                         // Back Button
                         _buildBackButton(),
                         const SizedBox(height: 38),
-                        
+
                         // Main Heading
                         const Text(
                           'Create account',
@@ -151,7 +149,7 @@ class _register_userState extends State<register_user> {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        
+
                         // Subtitle
                         const Text(
                           'Start your learning journey today.',
@@ -162,7 +160,7 @@ class _register_userState extends State<register_user> {
                           ),
                         ),
                         const SizedBox(height: 40),
-                        
+
                         // Full Name Input Field
                         TextFormField(
                           controller: _name,
@@ -180,14 +178,20 @@ class _register_userState extends State<register_user> {
                               borderRadius: BorderRadius.circular(20),
                               borderSide: BorderSide.none,
                             ),
-                            prefixIcon: const Icon(Icons.person_outline, color: _primary, size: 24),
+                            prefixIcon: const Icon(
+                              Icons.person_outline,
+                              color: _primary,
+                              size: 24,
+                            ),
                             hintText: 'Full Name',
                             hintStyle: const TextStyle(
                               color: _lightPurple,
                               fontSize: 18,
                               fontWeight: FontWeight.w500,
                             ),
-                            contentPadding: const EdgeInsets.symmetric(vertical: 19),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 19,
+                            ),
                             errorStyle: const TextStyle(
                               color: Colors.red,
                               fontSize: 14,
@@ -195,7 +199,7 @@ class _register_userState extends State<register_user> {
                           ),
                         ),
                         const SizedBox(height: 20),
-                        
+
                         // Email Address Input Field
                         TextFormField(
                           controller: _email,
@@ -213,14 +217,20 @@ class _register_userState extends State<register_user> {
                               borderRadius: BorderRadius.circular(20),
                               borderSide: BorderSide.none,
                             ),
-                            prefixIcon: const Icon(Icons.mail_outline, color: _primary, size: 24),
+                            prefixIcon: const Icon(
+                              Icons.mail_outline,
+                              color: _primary,
+                              size: 24,
+                            ),
                             hintText: 'Email Address',
                             hintStyle: const TextStyle(
                               color: _lightPurple,
                               fontSize: 18,
                               fontWeight: FontWeight.w500,
                             ),
-                            contentPadding: const EdgeInsets.symmetric(vertical: 19),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 19,
+                            ),
                             errorStyle: const TextStyle(
                               color: Colors.red,
                               fontSize: 14,
@@ -228,7 +238,7 @@ class _register_userState extends State<register_user> {
                           ),
                         ),
                         const SizedBox(height: 20),
-                        
+
                         // Password Input Field
                         TextFormField(
                           controller: _password,
@@ -247,7 +257,11 @@ class _register_userState extends State<register_user> {
                               borderRadius: BorderRadius.circular(20),
                               borderSide: BorderSide.none,
                             ),
-                            prefixIcon: const Icon(Icons.lock_outline, color: _primary, size: 24),
+                            prefixIcon: const Icon(
+                              Icons.lock_outline,
+                              color: _primary,
+                              size: 24,
+                            ),
                             suffixIcon: GestureDetector(
                               onTap: () {
                                 setState(() {
@@ -255,7 +269,9 @@ class _register_userState extends State<register_user> {
                                 });
                               },
                               child: Icon(
-                                _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                                _obscurePassword
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
                                 color: _primary,
                                 size: 24,
                               ),
@@ -266,7 +282,9 @@ class _register_userState extends State<register_user> {
                               fontSize: 18,
                               fontWeight: FontWeight.w500,
                             ),
-                            contentPadding: const EdgeInsets.symmetric(vertical: 19),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 19,
+                            ),
                             errorStyle: const TextStyle(
                               color: Colors.red,
                               fontSize: 14,
@@ -274,7 +292,7 @@ class _register_userState extends State<register_user> {
                           ),
                         ),
                         const SizedBox(height: 20),
-                        
+
                         // Confirm Password Input Field
                         TextFormField(
                           controller: _confirmPassword,
@@ -293,15 +311,22 @@ class _register_userState extends State<register_user> {
                               borderRadius: BorderRadius.circular(20),
                               borderSide: BorderSide.none,
                             ),
-                            prefixIcon: const Icon(Icons.shield_outlined, color: _primary, size: 24),
+                            prefixIcon: const Icon(
+                              Icons.shield_outlined,
+                              color: _primary,
+                              size: 24,
+                            ),
                             suffixIcon: GestureDetector(
                               onTap: () {
                                 setState(() {
-                                  _obscureConfirmPassword = !_obscureConfirmPassword;
+                                  _obscureConfirmPassword =
+                                      !_obscureConfirmPassword;
                                 });
                               },
                               child: Icon(
-                                _obscureConfirmPassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                                _obscureConfirmPassword
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
                                 color: _primary,
                                 size: 24,
                               ),
@@ -312,7 +337,9 @@ class _register_userState extends State<register_user> {
                               fontSize: 18,
                               fontWeight: FontWeight.w500,
                             ),
-                            contentPadding: const EdgeInsets.symmetric(vertical: 19),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 19,
+                            ),
                             errorStyle: const TextStyle(
                               color: Colors.red,
                               fontSize: 14,
@@ -320,15 +347,15 @@ class _register_userState extends State<register_user> {
                           ),
                         ),
                         const SizedBox(height: 24),
-                        
+
                         // Terms and Privacy Agreement
                         _buildTermsAgreement(),
                         const SizedBox(height: 24),
-                        
+
                         // Sign Up Button
                         _buildGradientButton(),
                         const SizedBox(height: 32),
-                        
+
                         // Login Redirect Text
                         Center(
                           child: Text.rich(
@@ -376,11 +403,7 @@ class _register_userState extends State<register_user> {
         onTap: () {
           Navigator.pop(context);
         },
-        child: const Icon(
-          Icons.arrow_back,
-          color: _primary,
-          size: 24,
-        ),
+        child: const Icon(Icons.arrow_back, color: _primary, size: 24),
       ),
     );
   }
@@ -410,11 +433,7 @@ class _register_userState extends State<register_user> {
               ),
             ),
             child: _agreeToTerms
-                ? const Icon(
-                    Icons.check,
-                    color: _white,
-                    size: 18,
-                  )
+                ? const Icon(Icons.check, color: _white, size: 18)
                 : null,
           ),
           // Agreement Text
@@ -442,10 +461,7 @@ class _register_userState extends State<register_user> {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    TextSpan(
-                      text: 'Privacy Policy',
-                      style: _linkTextStyle(16),
-                    ),
+                    TextSpan(text: 'Privacy Policy', style: _linkTextStyle(16)),
                   ],
                 ),
               ),
