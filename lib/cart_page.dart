@@ -9,11 +9,6 @@ const _muted = Color(0xFF9A96B8);
 const _purple = Color(0xFF6B45F0);
 const _star = Color(0xFFF5A623);
 
-/// The shopping cart.
-///
-/// Courses are added from the course details page ("Add to Cart") and can be
-/// deleted here. The summary shows **only the total price — there is no
-/// discount line**: the total is simply every item's own price added up.
 class CartPage extends StatelessWidget {
   const CartPage({super.key});
 

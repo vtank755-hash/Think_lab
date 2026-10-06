@@ -5,6 +5,10 @@ import 'cart_page.dart';
 import 'course.dart';
 import 'course_details.dart';
 import 'Searches.dart';
+import 'my_learning_page.dart';
+import 'open_lesson.dart';
+import 'progress.dart';
+import 'session.dart';
 import 'widgets/nav_bar.dart';
 import 'wishlist_page.dart';
 
@@ -62,10 +66,13 @@ class _indexState extends State<index> {
     );
   }
 
-  /// Tab 0 = home, tab 2 = the Wishlist screen, everything else still shows
-  /// its placeholder.
+  /// Tab 0 = home, tab 1 = My Learning, tab 2 = the Wishlist screen, tab 3
+  /// still shows its placeholder.
   Widget _body() {
     if (_tab == 0) return _home();
+    if (_tab == 1) {
+      return MyLearningPage(onBack: () => setState(() => _tab = 0));
+    }
     if (_tab == 2) {
       return WishlistPage(onBack: () => setState(() => _tab = 0));
     }
@@ -644,96 +651,139 @@ class _indexState extends State<index> {
   }
 
   /// Continue Learning card: the course the user is working through.
+  /// Continue Learning card.
+  ///
+  /// Shows this user's REAL course progress (never a fixed 65%) and opens
+  /// the lesson they stopped at — "Module 2 → Lesson 5" — for a purchased
+  /// course. Without a resume point it falls back to the course details.
   Widget _continueCard(Course course) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => _openCourse(course),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(22),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                color: const Color(0xFFEEE9FF),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Icon(
-                Icons.auto_awesome_mosaic_outlined,
-                color: _purple,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    course.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                      color: _title,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  const Text(
-                    'Lesson 10: Conditional Logic',
-                    style: TextStyle(fontSize: 11, color: _grey),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      const Expanded(
-                        child: Text(
-                          'Course Progress',
-                          style: TextStyle(fontSize: 10, color: _grey),
-                        ),
+    return ValueListenableBuilder<Map<String, String>>(
+      valueListenable: resumeOf(currentUser.value),
+      builder: (context, resume, _) {
+        return ValueListenableBuilder<Set<String>>(
+          valueListenable: completedLessons,
+          builder: (context, done, _) {
+            final total = courseLessonCount(course);
+            final completed = completedInCourse(course);
+            final percent = progressPercent(completed, total);
+            final point = resumePoint(course);
+
+            return GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => _continueCourse(course),
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 46,
+                      height: 46,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEEE9FF),
+                        borderRadius: BorderRadius.circular(14),
                       ),
-                      const Text(
-                        '65%',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: _title,
-                        ),
+                      child: const Icon(
+                        Icons.auto_awesome_mosaic_outlined,
+                        color: _purple,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
-                    child: const LinearProgressIndicator(
-                      value: 0.65,
-                      minHeight: 6,
-                      color: _purple,
-                      backgroundColor: Color(0xFFEDEAF8),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            course.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                              color: _title,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            _resumeLabel(course, point),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 11, color: _grey),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              const Expanded(
+                                child: Text(
+                                  'Course Progress',
+                                  style: TextStyle(fontSize: 10, color: _grey),
+                                ),
+                              ),
+                              Text(
+                                '$percent%',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: _title,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: LinearProgressIndicator(
+                              value: total == 0 ? 0 : completed / total,
+                              minHeight: 6,
+                              color: _purple,
+                              backgroundColor: const Color(0xFFEDEAF8),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: const BoxDecoration(
+                        color: _purple,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.play_arrow_rounded,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 10),
-            Container(
-              width: 40,
-              height: 40,
-              decoration: const BoxDecoration(
-                color: _purple,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.play_arrow_rounded, color: Colors.white),
-            ),
-          ],
-        ),
-      ),
+            );
+          },
+        );
+      },
     );
+  }
+
+  /// Subtitle of the Continue Learning card, e.g.
+  /// `Module 2 · 5. Dictionaries` — read from the real learning data.
+  String _resumeLabel(Course course, (String, String)? point) {
+    if (point == null) return 'Not started yet';
+    final mIndex = moduleIndexOf(course, point.$1);
+    final lIndex = lessonIndexOf(course, point.$1, point.$2);
+    if (mIndex < 0 || lIndex < 0) return 'Not started yet';
+    return 'Module ${mIndex + 1} · '
+        '${course.modules[mIndex].lessons[lIndex].title}';
+  }
+
+  /// Continue → the user's last watched lesson (or the first one) via the
+  /// shared helper; locked or empty courses still open their details page.
+  void _continueCourse(Course course) {
+    if (openCourseLesson(context, course)) return;
+    _openCourse(course);
   }
 
   /// Recommended course card: renders [course] and opens that course's page.

@@ -3,8 +3,14 @@ import 'package:flutter/material.dart';
 import 'cart.dart';
 import 'cart_page.dart';
 import 'course.dart';
+import 'module_detail_page.dart';
+import 'progress.dart';
 import 'purchases.dart';
+import 'quiz.dart';
+import 'quiz_page.dart';
+import 'quiz_results.dart';
 import 'session.dart';
+import 'open_lesson.dart';
 
 const _heading = Color(0xFF2B2356);
 const _muted = Color(0xFF9A96B8);
@@ -73,7 +79,17 @@ class _CourseDetailsState extends State<CourseDetails> {
     _openCart();
   }
 
-  void _startLearning() => _snack('Starting ${course.title} …');
+  /// "Start Learning" — opens the user's last watched lesson, or the very
+  /// first one. Shares the SAME helper as the home card and My Learning's
+  /// "Continue", so resume behaves identically everywhere.
+  void _startLearning() {
+    if (openCourseLesson(context, course)) return;
+    _snack(
+      isPurchased(course)
+          ? 'No lessons available yet'
+          : 'Purchase this course to start learning',
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -118,15 +134,7 @@ class _CourseDetailsState extends State<CourseDetails> {
                             height: 1.55,
                           ),
                         ),
-                        if (course.lessons.isNotEmpty) ...[
-                          const SizedBox(height: 26),
-                          _sectionHeading('Curriculum'),
-                          const SizedBox(height: 14),
-                          for (final lesson in course.lessons) ...[
-                            _lesson(lesson),
-                            const SizedBox(height: 12),
-                          ],
-                        ],
+                        if (course.modules.isNotEmpty) ...[_curriculum()],
                       ],
                     ),
                   ),
@@ -392,53 +400,272 @@ class _CourseDetailsState extends State<CourseDetails> {
     );
   }
 
-  Widget _lesson(Lesson lesson) {
+  /// Curriculum section: live course progress + one clickable row per module.
+  ///
+  /// Tapping a row opens the module's complete lesson list
+  /// (`ModuleDetailPage`), so the curriculum is a real navigation tree and
+  /// never a dead end.
+  Widget _curriculum() {
+    // Rebuilds whenever a lesson is completed anywhere in the app, and again
+    // whenever a quiz attempt is saved (pass flips the card to success).
+    return ValueListenableBuilder<Map<String, List<QuizAttempt>>>(
+      valueListenable: quizAttemptsOf(currentUser.value),
+      builder: (context, attempts, _) {
+        return ValueListenableBuilder<Set<String>>(
+          valueListenable: completedLessons,
+          builder: (context, done, _) {
+            final total = courseLessonCount(course);
+            final completed = completedInCourse(course);
+            final percent = progressPercent(completed, total);
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 26),
+                _sectionHeading('Curriculum'),
+                const SizedBox(height: 12),
+                if (total > 0) ...[
+                  _courseProgress(completed, total, percent),
+                  const SizedBox(height: 14),
+                  // Stage 1 done → the final quiz appears (never earlier).
+                  if (completed >= total) ...[
+                    _completionCard(),
+                    const SizedBox(height: 14),
+                  ],
+                ],
+                for (var i = 0; i < course.modules.length; i++) ...[
+                  _moduleRow(i, done),
+                  const SizedBox(height: 12),
+                ],
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// Course completion card — the two-stage rule in one place:
+  ///
+  /// * all lessons done, quiz not passed → "Course learning completed" with
+  ///   **Take Quiz**;
+  /// * quiz passed (>= 75%) → "Course successfully completed".
+  ///
+  /// Shown only when every lesson is completed: the quiz is never offered
+  /// before the learning stage is finished.
+  Widget _completionCard() {
+    final passed = isQuizPassed(course.id);
+    final attempt = latestQuizAttempt(course.id);
+    final total = courseLessonCount(course);
+
     return Container(
-      padding: const EdgeInsets.all(12),
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: passed ? const Color(0xFFE4F7EC) : const Color(0xFFEEE9FF),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                passed
+                    ? Icons.check_circle_rounded
+                    : Icons.emoji_events_rounded,
+                color: passed ? const Color(0xFF25A55F) : _purple,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  passed
+                      ? 'Course successfully completed'
+                      : 'Course learning completed',
+                  style: const TextStyle(
+                    color: _heading,
+                    fontSize: 15.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            passed
+                ? 'Final quiz passed with ${attempt?.percentage}% '
+                      '(${attempt?.score}/${attempt?.total}).'
+                : 'All $total lessons completed. Take the final quiz — '
+                      '$quizQuestionCount questions, $quizPassingPercentage% '
+                      'or higher completes the course.',
+            style: TextStyle(
+              color: passed ? const Color(0xFF25A55F) : _muted,
+              fontSize: 13,
+              height: 1.5,
+            ),
+          ),
+          if (!passed) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => QuizPage(courseId: course.id),
+                  ),
+                ),
+                style: FilledButton.styleFrom(
+                  backgroundColor: _purple,
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: const Text(
+                  'Take Quiz',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Course progress — `15 / 43 lessons completed` + `35%`, calculated from
+  /// the real lesson data of THIS course.
+  Widget _courseProgress(int completed, int total, int percent) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: _chipBg,
         borderRadius: BorderRadius.circular(18),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  progressLabel(completed, total),
+                  style: const TextStyle(color: _muted, fontSize: 13),
+                ),
+              ),
+              Text(
+                '$percent%',
+                style: const TextStyle(
+                  color: _purple,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: total == 0 ? 0 : completed / total,
+              minHeight: 8,
               color: _purple,
-              borderRadius: BorderRadius.circular(13),
-            ),
-            child: const Icon(
-              Icons.desktop_mac_outlined,
-              color: Colors.white,
-              size: 20,
+              backgroundColor: Colors.white,
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  lesson.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _heading,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  lesson.meta,
-                  style: const TextStyle(color: _muted, fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-          const Icon(Icons.chevron_right_rounded, color: _muted),
         ],
+      ),
+    );
+  }
+
+  /// One module row — the existing card design, now clickable and carrying
+  /// this module's own progress.
+  Widget _moduleRow(int moduleIndex, Set<String> done) {
+    final module = course.modules[moduleIndex];
+    final total = module.lessons.length;
+    var completed = 0;
+    for (var i = 0; i < total; i++) {
+      if (done.contains(lessonIdFor(course, moduleIndex, i))) completed++;
+    }
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ModuleDetailPage(
+            courseId: course.id,
+            moduleId: moduleIdFor(course, moduleIndex),
+          ),
+        ),
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: _chipBg,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: _purple,
+                borderRadius: BorderRadius.circular(13),
+              ),
+              child: const Icon(
+                Icons.desktop_mac_outlined,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    module.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: _heading,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  // Calculated: '9 lessons · 1h 45m'.
+                  Text(
+                    moduleMeta(module),
+                    style: const TextStyle(color: _muted, fontSize: 12),
+                  ),
+                  if (completed > 0) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      '$completed / $total lessons completed',
+                      style: const TextStyle(
+                        color: _purple,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: _muted),
+          ],
+        ),
       ),
     );
   }
