@@ -365,7 +365,7 @@ void main() {
     );
     expect(
       lessonVideo(python, 0, 0),
-      'https://cdn.learnhub.app/videos/c5/c5-module-1/c5-module-1-lesson-1.mp4',
+      'assets/videos/courses/python/lesson_01.mp4',
       reason: 'every lesson points at its own video',
     );
   });

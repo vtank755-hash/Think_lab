@@ -22,6 +22,7 @@ class _SplashScreenState extends State<SplashScreen> {
   void _navigateToLogin() {
     if (!mounted) return;
 
+    // Splash finished -> Go to the Login page.
     // Use pushReplacement so user cannot return to splash screen
     Navigator.pushReplacement(
       context,

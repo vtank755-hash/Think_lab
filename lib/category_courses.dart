@@ -20,6 +20,10 @@ const _star = Color(0xFFF5A623);
 /// The list is filtered straight from the shared [allCourses] data — nothing
 /// is hardcoded — and every card opens the dynamic [CourseDetails] page with
 /// that exact course (including its own price).
+// =====================================================
+// CATEGORY COURSES PAGE
+// Shows every course that belongs to one category.
+// =====================================================
 class CategoryCoursesPage extends StatefulWidget {
   final String category;
 
@@ -246,6 +250,7 @@ class _CourseCard extends StatelessWidget {
   const _CourseCard({required this.course});
 
   void _openDetails(BuildContext context) {
+    // Course card tapped -> Open the Course Details page.
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => CourseDetails(course: course)),
@@ -275,7 +280,7 @@ class _CourseCard extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(14),
-              child: Image.network(
+              child: Image.asset(
                 course.image,
                 width: 84,
                 height: 84,

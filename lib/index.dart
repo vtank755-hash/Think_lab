@@ -20,6 +20,11 @@ const _grey = Color(0xFF8E8EA9);
 const _chipBg = Color(0xFFF1F0F8);
 const _star = Color(0xFFF5A623);
 
+// =====================================================
+// HOME PAGE
+// Shows banner, categories, popular courses and the
+// course the user can continue learning.
+// =====================================================
 class index extends StatefulWidget {
   const index({super.key});
 
@@ -40,6 +45,7 @@ class _indexState extends State<index> {
   ];
 
   void _openSearches() {
+    // Search icon tapped -> Open the Search page.
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const Searches()),
@@ -48,6 +54,7 @@ class _indexState extends State<index> {
 
   /// Opens the full details page for a course card.
   void _openCourse(Course course) {
+    // Course card tapped -> Open the Course Details page.
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => CourseDetails(course: course)),
@@ -104,6 +111,7 @@ class _indexState extends State<index> {
               const Spacer(),
               GestureDetector(
                 onTap: () {
+                  // Categories "See all" tapped -> Open Categories page.
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => const categories()),
@@ -177,8 +185,8 @@ class _indexState extends State<index> {
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(28),
-          child: Image.network(
-            'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
+          child: Image.asset(
+            'assets/images/profile/avatar.jpg',
             width: 48,
             height: 48,
             fit: BoxFit.cover,
@@ -218,6 +226,7 @@ class _indexState extends State<index> {
           builder: (context, ids, _) {
             return GestureDetector(
               behavior: HitTestBehavior.opaque,
+              // Cart icon tapped -> Open the Cart page.
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const CartPage()),
@@ -478,6 +487,7 @@ class _indexState extends State<index> {
               setState(() {
                 _cat = i;
               });
+              // Category icon tapped -> Open the course list of that category.
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const categories()),
@@ -559,7 +569,7 @@ class _indexState extends State<index> {
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(20),
                   ),
-                  child: Image.network(
+                  child: Image.asset(
                     course.image,
                     height: 112,
                     width: 220,
@@ -801,7 +811,7 @@ class _indexState extends State<index> {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(14),
-              child: Image.network(
+              child: Image.asset(
                 course.image,
                 width: 72,
                 height: 72,

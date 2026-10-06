@@ -30,6 +30,10 @@ const _green = Color(0xFF25A55F);
 /// * remembers the playback position and the last opened lesson;
 /// * marks the lesson completed when the video finishes;
 /// * Previous / Next move through the module and on into the next module.
+// =====================================================
+// LESSON PAGE (VIDEO LEARNING PAGE)
+// Shows the lesson video, notes and Previous/Next navigation.
+// =====================================================
 class LessonPage extends StatefulWidget {
   final String courseId;
   final String moduleId;
@@ -103,6 +107,7 @@ class _LessonPageState extends State<LessonPage> {
   }
 
   void _onVideoFinished() {
+    // Video finished -> Mark the lesson as completed automatically.
     if (!_unlocked) return;
     markLessonCompleted(widget.lessonId, completed: true);
     saveVideoPosition(widget.lessonId, _player.durationSeconds);
@@ -110,6 +115,7 @@ class _LessonPageState extends State<LessonPage> {
   }
 
   void _toggleCompleted() {
+    // Mark the lesson as completed (and clear the video position if undone).
     final next = !_completed;
     markLessonCompleted(widget.lessonId, completed: next);
     if (!next) saveVideoPosition(widget.lessonId, 0);
@@ -117,6 +123,7 @@ class _LessonPageState extends State<LessonPage> {
   }
 
   void _goTo(int mIndex, int lIndex) {
+    // Move the user to the next (or previous) lesson.
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -144,6 +151,7 @@ class _LessonPageState extends State<LessonPage> {
   /// Opens the final quiz of THIS course (offered only when the lessons are
   /// all completed).
   void _openQuiz() {
+    // Last lesson completed -> Open the final course quiz.
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => QuizPage(courseId: widget.courseId)),

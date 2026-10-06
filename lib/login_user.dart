@@ -59,6 +59,7 @@ class _login_userState extends State<login_user> {
       // The typed e-mail becomes the current user id: every wishlist and
       // every purchase in the app is stored against THIS user + course id.
       signIn(_email.text);
+      // Login successful -> Go to the Home page.
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const index()),

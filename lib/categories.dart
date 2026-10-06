@@ -4,6 +4,10 @@ import 'category_courses.dart';
 import 'course.dart';
 import 'widgets/nav_bar.dart';
 
+// =====================================================
+// CATEGORIES PAGE
+// Shows the category grid (Web, Design, Marketing ...).
+// =====================================================
 class categories extends StatefulWidget {
   const categories({super.key});
 
@@ -63,6 +67,7 @@ const List<_CategoryInfo> _categoryInfos = [
 
 class _categoriesState extends State<categories> {
   void _openCategory(String category) {
+    // Category tapped -> Open the list of courses in this category.
     Navigator.push(
       context,
       MaterialPageRoute(

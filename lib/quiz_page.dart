@@ -32,6 +32,10 @@ ValueKey<String> quizOptionKey(int index) => ValueKey('quiz-option-$index');
 /// * `Submit` calculates the real score; **75% or above passes**, below that
 ///   the result screen offers `Retry Quiz` (attempt restarted from question 1);
 /// * every attempt is stored per user + course in `quiz_results.dart`.
+// =====================================================
+// COURSE QUIZ PAGE
+// Shows 20 questions for the selected course.
+// =====================================================
 class QuizPage extends StatefulWidget {
   /// The course whose quiz should be loaded.
   final String courseId;
@@ -82,6 +86,7 @@ class _QuizPageState extends State<QuizPage> {
   }
 
   /// Calculates the real score and stores this attempt for the user.
+  /// Quiz submitted -> Show the score/result page.
   void _submit() {
     final quiz = _quiz;
     if (quiz == null) return;
@@ -94,6 +99,7 @@ class _QuizPageState extends State<QuizPage> {
   }
 
   /// Retry: question 1, fresh (empty) answers, same course quiz.
+  /// Score is below 75% -> the user must retry the quiz.
   void _retry() {
     setState(() {
       _index = 0;
@@ -521,6 +527,8 @@ class _QuizPageState extends State<QuizPage> {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
+                  // Passed (75%+) -> Go back to the course.
+                  // Failed (< 75%) -> Restart the quiz from question 1.
                   onPressed: passed ? () => Navigator.pop(context) : _retry,
                   style: FilledButton.styleFrom(
                     backgroundColor: _purple,

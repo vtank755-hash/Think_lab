@@ -27,6 +27,11 @@ const _chipBg = Color(0xFFF4F1FF);
 ///
 /// Everything is driven by the same per-user stores as the rest of the app
 /// (`purchases.dart` + `progress.dart`), so two accounts see their own lists.
+// =====================================================
+// MY LEARNING PAGE
+// Shows the courses the user is learning (in progress)
+// and the courses that are fully completed.
+// =====================================================
 class MyLearningPage extends StatefulWidget {
   /// Leaves the Learning tab (back to Home).
   final VoidCallback? onBack;
@@ -243,7 +248,7 @@ class _LearningCard extends StatelessWidget {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(16),
-                child: Image.network(
+                child: Image.asset(
                   course.image,
                   width: 86,
                   height: 86,
@@ -371,6 +376,7 @@ class _LearningCard extends StatelessWidget {
   /// course instead of "Continue".
   Widget _quizButton(BuildContext context) {
     return FilledButton(
+      // All lessons finished -> Open the final quiz of this course.
       onPressed: () => Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => QuizPage(courseId: course.id)),

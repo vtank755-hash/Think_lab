@@ -148,7 +148,7 @@ class LessonVideoPlayer extends StatelessWidget {
   Widget _poster() {
     return Opacity(
       opacity: 0.35,
-      child: Image.network(
+      child: Image.asset(
         poster,
         fit: BoxFit.cover,
         errorBuilder: (_, _, _) => const ColoredBox(color: Color(0xFF1B1638)),

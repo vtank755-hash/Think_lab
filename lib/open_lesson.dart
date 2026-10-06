@@ -39,6 +39,7 @@ bool openCourseLesson(BuildContext context, Course course) {
     return false;
   }
 
+  // Open the lesson the user stopped at (or the first one if new).
   Navigator.push(
     context,
     MaterialPageRoute(

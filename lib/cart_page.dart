@@ -9,6 +9,10 @@ const _muted = Color(0xFF9A96B8);
 const _purple = Color(0xFF6B45F0);
 const _star = Color(0xFFF5A623);
 
+// =====================================================
+// CART PAGE
+// Shows the selected courses and the total cart amount.
+// =====================================================
 class CartPage extends StatelessWidget {
   const CartPage({super.key});
 
@@ -167,6 +171,7 @@ class CartPage extends StatelessWidget {
             width: double.infinity,
             child: FilledButton(
               // The ONLY entry point to payment in the whole app.
+              // User taps Pay Now -> Open the Checkout page.
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -236,7 +241,7 @@ class _CartCard extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(14),
-            child: Image.network(
+            child: Image.asset(
               course.image,
               width: 68,
               height: 68,

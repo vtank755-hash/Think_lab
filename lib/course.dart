@@ -154,7 +154,7 @@ const allCourses = <Course>[
     id: 'c1',
     title: 'Complete Web Development Bootcamp',
     category: 'Development',
-    image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400',
+    image: 'assets/images/courses/web_development.jpg',
     instructor: 'Rohan Gupta',
     instructorRole: 'Senior Full-Stack Developer',
     rating: '4.8',
@@ -392,7 +392,7 @@ const allCourses = <Course>[
     id: 'c2',
     title: 'UI/UX Design Masterclass',
     category: 'Design',
-    image: 'https://images.unsplash.com/photo-1581291518857-4d859fc9e0b5?w=400',
+    image: 'assets/images/courses/uiux_design.jpg',
     instructor: 'Sarah Jenkins',
     instructorRole: 'Product Designer',
     rating: '4.9',
@@ -579,7 +579,7 @@ const allCourses = <Course>[
     id: 'c3',
     title: 'Digital Marketing Fundamentals',
     category: 'Marketing',
-    image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=400',
+    image: 'assets/images/courses/digital_marketing.jpg',
     instructor: 'Priya Menon',
     instructorRole: 'Marketing Strategist',
     rating: '4.7',
@@ -759,7 +759,7 @@ const allCourses = <Course>[
     id: 'c4',
     title: 'Business Management Essentials',
     category: 'Business',
-    image: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=400',
+    image: 'assets/images/courses/business_management.jpg',
     instructor: 'Rohit Verma',
     instructorRole: 'Business Consultant',
     rating: '4.8',
@@ -944,7 +944,7 @@ const allCourses = <Course>[
     id: 'c5',
     title: 'Python Programming',
     category: 'IT & Software',
-    image: 'https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=400',
+    image: 'assets/images/courses/python.jpg',
     instructor: 'Arjun Rao',
     instructorRole: 'Python Developer & Educator',
     rating: '4.7',
@@ -1431,7 +1431,7 @@ const allCourses = <Course>[
     id: 'c6',
     title: 'Personal Development & Productivity',
     category: 'Personal Development',
-    image: 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=400',
+    image: 'assets/images/courses/personal_development.jpg',
     instructor: 'Meera Nair',
     instructorRole: 'Communication Coach',
     rating: '4.7',
@@ -1682,10 +1682,39 @@ Lesson lessonById(Course course, String moduleId_, String lessonId_) {
 }
 
 /// The video that belongs to THIS lesson — every lesson gets its own file.
+///
+/// The videos are stored inside the project, one file per lesson:
+/// `assets/videos/courses/python/lesson_01.mp4`, `lesson_02.mp4`, ...
 String lessonVideo(Course course, int moduleIndex, int lessonIndex) {
-  final mId = moduleIdFor(course, moduleIndex);
-  final lId = lessonIdFor(course, moduleIndex, lessonIndex);
-  return 'https://cdn.learnhub.app/videos/${course.id}/$mId/$lId.mp4';
+  // Lesson number inside the course (module 1 lesson 1 = 01, then 02, 03 ...).
+  var number = 1;
+  for (var m = 0; m < moduleIndex; m++) {
+    number += course.modules[m].lessons.length;
+  }
+  number += lessonIndex;
+  final file = number.toString().padLeft(2, '0');
+
+  return 'assets/videos/courses/${videoFolder(course)}/lesson_$file.mp4';
+}
+
+/// Local video folder of a course (matches assets/videos/courses/).
+String videoFolder(Course course) {
+  switch (course.id) {
+    case 'c1':
+      return 'web_development';
+    case 'c2':
+      return 'uiux_design';
+    case 'c3':
+      return 'digital_marketing';
+    case 'c4':
+      return 'business_management';
+    case 'c5':
+      return 'python';
+    case 'c6':
+      return 'personal_development';
+    default:
+      return course.id;
+  }
 }
 
 /// `'1. Getting Started with Python'` → `'Getting Started with Python'`.

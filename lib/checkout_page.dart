@@ -25,6 +25,10 @@ const paymentMethods = [
 /// **TOTAL only** — no subtotal, no discount, no coupon.
 ///
 /// `total` is always the sum of `courses` prices calculated by the cart.
+// =====================================================
+// CHECKOUT PAGE
+// Shows cart courses, payment method and the final amount.
+// =====================================================
 class CheckoutPage extends StatefulWidget {
   final List<Course> courses;
   final int total;
@@ -40,6 +44,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   String _method = 'UPI';
 
   void _pay() {
+    // User taps Pay Now -> Open the UPI QR payment page.
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -186,7 +191,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(10),
-          child: Image.network(
+          child: Image.asset(
             course.image,
             width: 44,
             height: 44,

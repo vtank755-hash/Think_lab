@@ -30,6 +30,10 @@ String upiPaymentUrl(int totalRupees) =>
 /// The QR always encodes the CART TOTAL (never a single course price):
 ///
 /// `upi://pay?pa=demo@upi&pn=ThinkLab&am=3797.00&cu=INR&tn=Course%20Payment`
+// =====================================================
+// UPI PAYMENT PAGE
+// Shows the demo UPI QR code for the cart amount.
+// =====================================================
 class UpiPaymentPage extends StatefulWidget {
   final List<Course> courses;
   final int total;
@@ -67,6 +71,8 @@ class _UpiPaymentPageState extends State<UpiPaymentPage> {
     if (!mounted) return;
 
     final paidCourses = List<Course>.of(widget.courses);
+    // Payment successful -> Unlock the purchased courses and remove them
+    // from the cart, then show the success page.
     unlockCourses(paidCourses);
     for (final course in paidCourses) {
       removeFromCart(course);

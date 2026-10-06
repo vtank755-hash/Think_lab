@@ -21,6 +21,10 @@ const _green = Color(0xFF25A55F);
 ///
 /// Lesson names, counts, durations and progress are all read from the course
 /// data; nothing here is hardcoded.
+// =====================================================
+// MODULE PAGE
+// Shows the lesson list of one module with its progress.
+// =====================================================
 class ModuleDetailPage extends StatelessWidget {
   final String courseId;
   final String moduleId;
@@ -32,6 +36,7 @@ class ModuleDetailPage extends StatelessWidget {
   });
 
   void _openLesson(BuildContext context, String lessonId) {
+    // User taps a lesson -> Open the video learning page.
     Navigator.push(
       context,
       MaterialPageRoute(

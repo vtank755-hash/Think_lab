@@ -23,6 +23,10 @@ const _heart = Color(0xFFFF4D6D);
 ///   here) and confirms with the standard SnackBar;
 /// * a course the current user already owns can never be bought again — the
 ///   card switches to the existing "Go to Cart" / "Start Learning" states.
+// =====================================================
+// WISHLIST PAGE
+// Shows courses saved by the current user.
+// =====================================================
 class WishlistPage extends StatelessWidget {
   /// Leaves the Wishlist tab (back to Home).
   final VoidCallback? onBack;
@@ -30,6 +34,7 @@ class WishlistPage extends StatelessWidget {
   const WishlistPage({super.key, this.onBack});
 
   void _openCourse(BuildContext context, Course course) {
+    // Wishlist course tapped -> Open the Course Details page.
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => CourseDetails(course: course)),
@@ -156,6 +161,7 @@ class _WishlistCard extends StatelessWidget {
   }
 
   void _openCart(BuildContext context) {
+    // Cart icon tapped -> Open the Cart page.
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const CartPage()),
@@ -185,7 +191,7 @@ class _WishlistCard extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(14),
-              child: Image.network(
+              child: Image.asset(
                 course.image,
                 width: 74,
                 height: 74,

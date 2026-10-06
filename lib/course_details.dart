@@ -63,6 +63,7 @@ class _CourseDetailsState extends State<CourseDetails> {
   }
 
   void _openCart() {
+    // Cart icon tapped -> Open the Cart page.
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const CartPage()),
@@ -75,6 +76,7 @@ class _CourseDetailsState extends State<CourseDetails> {
   /// There is deliberately NO direct payment here: the only way to pay is
   /// Cart → Pay Now → Checkout.
   void _addToCart() {
+    // Buy Now / Add to Cart -> Save the course in the cart and open it.
     addToCart(course);
     _openCart();
   }
@@ -157,7 +159,7 @@ class _CourseDetailsState extends State<CourseDetails> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Image.network(
+          Image.asset(
             course.image,
             fit: BoxFit.cover,
             errorBuilder: (_, __, ___) => Container(
@@ -282,8 +284,8 @@ class _CourseDetailsState extends State<CourseDetails> {
     return Row(
       children: [
         ClipOval(
-          child: Image.network(
-            'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
+          child: Image.asset(
+            'assets/images/profile/avatar.jpg',
             width: 46,
             height: 46,
             fit: BoxFit.cover,
@@ -511,6 +513,7 @@ class _CourseDetailsState extends State<CourseDetails> {
             SizedBox(
               width: double.infinity,
               child: FilledButton(
+                // Course learning completed -> Open the final course quiz.
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -598,6 +601,7 @@ class _CourseDetailsState extends State<CourseDetails> {
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
+      // User taps a module -> Open the lesson list for that module.
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(

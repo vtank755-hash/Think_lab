@@ -1,0 +1,3 @@
+Local lesson videos for this course go in this folder.
+Example: lesson_01.mp4, lesson_02.mp4 ...
+One video per lesson - the lesson page picks the file by course, module and lesson id.

@@ -18,6 +18,10 @@ const _popularSearches = [
   'Productivity',
 ];
 
+// =====================================================
+// SEARCH PAGE
+// Shows the courses that match what the user typed.
+// =====================================================
 class Searches extends StatefulWidget {
   const Searches({super.key});
 
@@ -238,6 +242,7 @@ class _SearchesState extends State<Searches> {
   Widget _courseCard(Course course) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
+      // Search result tapped -> Open the Course Details page.
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => CourseDetails(course: course)),
@@ -259,7 +264,7 @@ class _SearchesState extends State<Searches> {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(14),
-              child: Image.network(
+              child: Image.asset(
                 course.image,
                 width: 72,
                 height: 72,
