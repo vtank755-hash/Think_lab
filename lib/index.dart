@@ -56,7 +56,7 @@ class _HomePageState extends State<HomePage> {
   // Which bottom tab is open: 0 = Home, 1 = Learning, 2 = Wishlist, 3 = Profile.
   int _tab = 0;
   // Which category icon is highlighted (purple) in the category row.
-  int _cat = 1;g
+  int _cat = 1;
 
   // The 5 category icons shown in the horizontal list on the Home tab.
   final _cats = const [
