@@ -26,6 +26,19 @@ const paymentMethods = [
 ///
 /// `total` is always the sum of `courses` prices calculated by the cart.
 // =====================================================
+// UI STRUCTURE (SCREEN VIEW)
+//  1. Back button          -> GestureDetector + Icon (tap -> previous page)
+//  2. Title                -> Text "Checkout"
+//  3. Order Summary card   -> Container + Text "Order Summary"
+//  4. Course rows          -> Row of Image.asset + title + price
+//  5. Total row            -> Row "Total" + amount
+//  6. Section title        -> Text "Payment Method"
+//  7. Payment method tiles -> GestureDetector + circle radio (tap -> select method)
+//  8. Method names         -> Text "UPI" / "Google Pay" / "PhonePe" / "Paytm" / "Debit / Credit Card" / "Net Banking"
+//  9. Bottom bar           -> Total column + button row
+// 10. Pay Now button       -> FilledButton (tap -> UPI payment page)
+// =====================================================
+// =====================================================
 // CHECKOUT PAGE
 // Shows cart courses, payment method and the final amount.
 // =====================================================
@@ -41,6 +54,7 @@ class CheckoutPage extends StatefulWidget {
 
 class _CheckoutPageState extends State<CheckoutPage> {
   /// UPI selected by default.
+  /// _method holds whichever payment method the user last tapped.
   String _method = 'UPI';
 
   void _pay() {
@@ -62,13 +76,18 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final total = formatRupees(widget.total);
 
     return Scaffold(
+      // Scaffold = the checkout page (light purple background + body).
       backgroundColor: const Color(0xFFF4F1FF),
+      // SafeArea = keeps content away from the notch / status bar.
       body: SafeArea(
+        // Column = header on top, scrollable middle, bottom total bar.
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _header(),
+            // Expanded = lets the middle list fill the leftover height.
             Expanded(
+              // ListView = scrolls the order summary and payment methods.
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(18, 8, 18, 18),
                 children: [
@@ -92,10 +111,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
   Widget _header() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 14, 18, 8),
+      // Row = back button and "Checkout" title side by side.
       child: Row(
         children: [
+          // GestureDetector = tap -> go back to the cart.
           GestureDetector(
             onTap: () => Navigator.pop(context),
+            // Container = white circle behind the back arrow.
             child: Container(
               width: 42,
               height: 42,
@@ -103,6 +125,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 color: Colors.white,
                 shape: BoxShape.circle,
               ),
+              // Icon = the back arrow glyph.
               child: const Icon(
                 Icons.arrow_back_ios_new_rounded,
                 color: _heading,
@@ -138,6 +161,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   // ----------------------------------------------------- order summary
 
   Widget _orderSummary() {
+    // Container = white rounded Order Summary card.
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -145,6 +169,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
       ),
+      // Column = heading, course rows and total stacked vertically.
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -161,6 +186,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
             _summaryRow(course),
             const SizedBox(height: 12),
           ],
+          // Divider = separates the course rows from the total row.
           const Divider(height: 8, color: Color(0xFFEDEAF8)),
           const SizedBox(height: 12),
           // TOTAL only — no subtotal, discount or coupon anywhere.
@@ -187,16 +213,18 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   Widget _summaryRow(Course course) {
+    // Row = thumbnail, course title and price in one line.
     return Row(
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(10),
+          // Image.asset = the course thumbnail picture.
           child: Image.asset(
             course.image,
             width: 44,
             height: 44,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => Container(
+            errorBuilder: (_, _, _) => Container(
               width: 44,
               height: 44,
               color: const Color(0xFFEEE9FF),
@@ -204,6 +232,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
           ),
         ),
         const SizedBox(width: 12),
+        // Expanded = title stretches into the free middle space.
         Expanded(
           child: Text(
             course.title,
@@ -232,15 +261,18 @@ class _CheckoutPageState extends State<CheckoutPage> {
   // -------------------------------------------------- payment methods
 
   Widget _methodsCard() {
+    // Container = white rounded card holding the payment methods.
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
       ),
+      // Column = one payment method row below another.
       child: Column(
         children: [
           for (var i = 0; i < paymentMethods.length; i++) ...[
+            // Divider = separates neighbouring payment method rows.
             if (i > 0) const Divider(height: 8, color: Color(0xFFEDEAF8)),
             _methodTile(paymentMethods[i]),
           ],
@@ -249,6 +281,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
   }
 
+  // One row per payment method. The purple circle = the currently
+  // selected method; tapping a row calls setState to move the selection.
   Widget _methodTile(String method) {
     final selected = _method == method;
     return GestureDetector(
@@ -256,6 +290,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
       onTap: () => setState(() => _method = method),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12),
+        // Row = radio circle + method name + selected tick.
         child: Row(
           children: [
             Container(
@@ -270,6 +305,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
               ),
               child: selected
                   ? Center(
+                      // Container = purple dot inside the selected circle.
                       child: Container(
                         width: 10,
                         height: 10,
@@ -282,6 +318,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   : null,
             ),
             const SizedBox(width: 12),
+            // Expanded = method name fills the space up to the tick.
             Expanded(
               child: Text(
                 method,
@@ -293,6 +330,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
               ),
             ),
             if (selected)
+              // Icon = purple tick shown on the chosen method.
               const Icon(Icons.check_circle_rounded, color: _purple, size: 18),
           ],
         ),
@@ -303,6 +341,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   // ------------------------------------------------------- bottom bar
 
   Widget _bottomBar(String total) {
+    // Container = white bottom bar with total and Pay Now.
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
@@ -310,8 +349,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
+      // Row = total amount on the left, Pay Now button on the right.
       child: Row(
         children: [
+          // Column = "Total" label stacked above the amount.
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -332,7 +373,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
             ],
           ),
           const SizedBox(width: 18),
+          // Expanded = button stretches across the free width.
           Expanded(
+            // FilledButton = Pay Now -> opens the UPI payment page.
             child: FilledButton(
               onPressed: _pay,
               style: FilledButton.styleFrom(

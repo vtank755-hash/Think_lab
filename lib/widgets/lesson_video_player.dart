@@ -28,6 +28,9 @@ class LessonVideoController extends ChangeNotifier {
 
   int _position;
   bool _playing = false;
+  // Timer fires once every second and calls _tick() to move the progress
+  // bar forward, like a real video clock. It is created in play() and
+  // cancelled in pause()/dispose().
   Timer? _timer;
 
   /// Current position in seconds.
@@ -43,6 +46,7 @@ class LessonVideoController extends ChangeNotifier {
   double get progress =>
       durationSeconds <= 0 ? 0 : (_position / durationSeconds).clamp(0.0, 1.0);
 
+  // Start the video: begin the 1-second Timer that calls _tick() every second.
   void play() {
     if (_playing) return;
     if (finished) _position = 0; // replay from the start
@@ -51,6 +55,7 @@ class LessonVideoController extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Stop the video: cancel the Timer so the position stops moving.
   void pause() {
     _timer?.cancel();
     _timer = null;
@@ -72,6 +77,8 @@ class LessonVideoController extends ChangeNotifier {
     if (reachedEnd) onCompleted?.call();
   }
 
+  // Called by the Timer every second: add 1 second to the position.
+  // If we reach the end, pause and report the lesson as completed.
   void _tick() {
     _position += 1;
     if (_position >= durationSeconds) {
@@ -83,6 +90,8 @@ class LessonVideoController extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Always cancel the Timer when the widget is removed, so it keeps
+  // running in the background and wasting battery.
   @override
   void dispose() {
     _timer?.cancel();
@@ -118,11 +127,13 @@ class LessonVideoPlayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Rebuilds the player every time the Timer updates the position.
     return ListenableBuilder(
       listenable: controller,
       builder: (context, _) {
         return AspectRatio(
           aspectRatio: 16 / 9,
+          // Container = dark gradient surface the video sits on.
           child: Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -131,11 +142,14 @@ class LessonVideoPlayer extends StatelessWidget {
                 colors: [Color(0xFF241C4A), Color(0xFF14102B)],
               ),
             ),
+            // Stack layers the poster, the play button and the controls
+            // on top of each other.
             child: Stack(
               fit: StackFit.expand,
               children: [
                 _poster(),
                 Center(child: _playButton()),
+                // Positioned = control bar pinned to the bottom edge.
                 Positioned(left: 0, right: 0, bottom: 0, child: _controls()),
               ],
             ),
@@ -148,6 +162,7 @@ class LessonVideoPlayer extends StatelessWidget {
   Widget _poster() {
     return Opacity(
       opacity: 0.35,
+      // Image.asset = faded course image behind the player.
       child: Image.asset(
         poster,
         fit: BoxFit.cover,
@@ -158,9 +173,11 @@ class LessonVideoPlayer extends StatelessWidget {
 
   Widget _playButton() {
     final finished = controller.finished;
+    // GestureDetector = tap -> play, pause or replay the lesson.
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: controller.toggle,
+      // Container = white round button behind the play icon.
       child: Container(
         width: 62,
         height: 62,
@@ -174,6 +191,7 @@ class LessonVideoPlayer extends StatelessWidget {
             ),
           ],
         ),
+        // Icon = play, pause or replay symbol.
         child: Icon(
           finished
               ? Icons.replay_rounded
@@ -188,6 +206,7 @@ class LessonVideoPlayer extends StatelessWidget {
   }
 
   Widget _controls() {
+    // Container = bottom control bar with a fading dark gradient.
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 6, 8, 6),
       decoration: BoxDecoration(
@@ -200,6 +219,7 @@ class LessonVideoPlayer extends StatelessWidget {
           ],
         ),
       ),
+      // Row = time, seek slider, duration and full screen button.
       child: Row(
         children: [
           Text(
@@ -210,6 +230,7 @@ class LessonVideoPlayer extends StatelessWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
+          // Expanded = seek slider fills the space between the times.
           Expanded(
             child: SliderTheme(
               data: SliderThemeData(
@@ -238,6 +259,7 @@ class LessonVideoPlayer extends StatelessWidget {
             ),
           ),
           if (showFullscreenButton)
+            // IconButton = enters full screen video.
             IconButton(
               onPressed: onFullscreen,
               tooltip: 'Full screen',
@@ -248,6 +270,7 @@ class LessonVideoPlayer extends StatelessWidget {
               ),
             )
           else
+            // IconButton = leaves full screen video.
             IconButton(
               onPressed: onCloseFullscreen,
               tooltip: 'Close full screen',
@@ -272,10 +295,13 @@ class LessonMetaRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Row = meta icon followed by its line of text.
     return Row(
       children: [
+        // Icon = the meta line's leading symbol.
         Icon(icon, color: _muted, size: 15),
         const SizedBox(width: 6),
+        // Expanded = meta text takes the remaining width.
         Expanded(
           child: Text(
             text,

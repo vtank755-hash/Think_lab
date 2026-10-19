@@ -1,3 +1,5 @@
+// CART - remembers which courses are in the shopping cart,
+// plus small helpers for prices and totals.
 import 'package:flutter/foundation.dart';
 
 import 'course.dart';

@@ -1,3 +1,6 @@
+// SESSION - remembers WHICH user is logged in right now.
+// Purchases and learning progress look this id up, so every user
+// sees only their own data.
 import 'package:flutter/foundation.dart';
 
 /// The id of the user who is signed in right now.

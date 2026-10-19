@@ -3,14 +3,14 @@ import 'package:flutter/material.dart';
 import 'cart.dart';
 import 'cart_page.dart';
 import 'course.dart';
-import 'module_detail_page.dart';
 import 'progress.dart';
 import 'purchases.dart';
-import 'quiz.dart';
-import 'quiz_page.dart';
 import 'quiz_results.dart';
 import 'session.dart';
 import 'open_lesson.dart';
+import 'widgets/completion_card.dart';
+import 'widgets/module_row.dart';
+import 'widgets/progress_card.dart';
 
 const _heading = Color(0xFF2B2356);
 const _muted = Color(0xFF9A96B8);
@@ -19,6 +19,26 @@ const _purple = Color(0xFF6B45F0);
 const _chipBg = Color(0xFFF4F1FF);
 const _star = Color(0xFFF5A623);
 
+// =====================================================
+// UI STRUCTURE (SCREEN VIEW)
+//  1. Back button              -> GestureDetector + Icon (tap -> previous page)
+//  2. Course image             -> Image.asset (hero banner)
+//  3. Favourite heart          -> ValueListenableBuilder + Icon (tap -> toggle)
+//  4. Preview play button      -> GestureDetector + Icon (tap -> play preview)
+//  5. Category tag             -> Container + Text
+//  6. Course title             -> Text
+//  7. Instructor row           -> Row (avatar Image.asset + name Text)
+//  8. Stats row                -> Row (Rating / Students / Duration)
+//  9. Description              -> Text
+// 10. Curriculum block         -> ProgressCard + ModuleRow list
+// 11. Bottom action bar        -> price Text + Add to Cart / Start Learning
+// =====================================================
+/// COURSE DETAILS PAGE (StatefulWidget)
+///
+/// StatefulWidget is used here because the page rebuilds when the user buys
+/// the course, adds it to the cart, or completes a lesson.
+/// Layout: Scaffold -> Stack (scrollable content + fixed bottom buy bar).
+///
 /// The single, reusable course details page.
 ///
 /// It holds no course data of its own: everything on screen comes from the
@@ -40,6 +60,7 @@ class CourseDetails extends StatefulWidget {
 class _CourseDetailsState extends State<CourseDetails> {
   Course get course => widget.course;
 
+  // Small message shown at the bottom of the screen (SnackBar).
   void _snack(String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -53,6 +74,7 @@ class _CourseDetailsState extends State<CourseDetails> {
       );
   }
 
+  // Add the course to favourites, or remove it again.
   void _toggleFavorite() {
     toggleFavorite(course);
     _snack(
@@ -95,18 +117,23 @@ class _CourseDetailsState extends State<CourseDetails> {
 
   @override
   Widget build(BuildContext context) {
+    // Scaffold = the whole course details page.
     return Scaffold(
       backgroundColor: Colors.white,
+      // Stack: scrollable page content + the buy bar fixed at the bottom.
       body: Stack(
         children: [
+          // SingleChildScrollView = scrollable page content.
           SingleChildScrollView(
             padding: const EdgeInsets.only(bottom: 110),
+            // Column = vertical stack: hero banner, then content card.
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _hero(),
                 Transform.translate(
                   offset: const Offset(0, -26),
+                  // Container = white rounded card holding course info.
                   child: Container(
                     padding: const EdgeInsets.fromLTRB(22, 24, 22, 26),
                     decoration: const BoxDecoration(
@@ -115,6 +142,7 @@ class _CourseDetailsState extends State<CourseDetails> {
                         top: Radius.circular(28),
                       ),
                     ),
+                    // Column = tag, title, stats, description, curriculum.
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -144,6 +172,7 @@ class _CourseDetailsState extends State<CourseDetails> {
               ],
             ),
           ),
+          // Positioned = pins the buy bar to the bottom edge.
           Positioned(left: 0, right: 0, bottom: 0, child: _buyBar()),
         ],
       ),
@@ -152,17 +181,21 @@ class _CourseDetailsState extends State<CourseDetails> {
 
   // ---------------------------------------------------------------- hero
 
+  // Top banner image with back, favourite and preview-play buttons.
   Widget _hero() {
     return SizedBox(
       height: 290,
       width: double.infinity,
+      // Stack = layers the buttons over the banner image.
       child: Stack(
         fit: StackFit.expand,
         children: [
+          // Image.asset = the course banner photo.
           Image.asset(
             course.image,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => Container(
+            // Container = dark placeholder if the image fails to load.
+            errorBuilder: (_, _, _) => Container(
               color: const Color(0xFF241C4A),
               child: const Icon(
                 Icons.code_rounded,
@@ -180,6 +213,7 @@ class _CourseDetailsState extends State<CourseDetails> {
               ),
             ),
           ),
+          // Positioned = places the back button top-left.
           Positioned(
             left: 18,
             top: 18,
@@ -188,12 +222,16 @@ class _CourseDetailsState extends State<CourseDetails> {
               onTap: () => Navigator.pop(context),
             ),
           ),
+          // Positioned = places the favourite heart top-right.
           Positioned(right: 18, top: 18, child: _favoriteButton()),
+          // Positioned = places play button lower-left of the banner.
           Positioned(
             left: 28,
             bottom: 52,
+            // GestureDetector = tap plays the course preview.
             child: GestureDetector(
               onTap: () => _snack('Playing preview of ${course.title}'),
+              // Container = white circle behind the play triangle.
               child: Container(
                 width: 64,
                 height: 64,
@@ -201,6 +239,7 @@ class _CourseDetailsState extends State<CourseDetails> {
                   color: Colors.white,
                   shape: BoxShape.circle,
                 ),
+                // Icon = play triangle glyph.
                 child: const Icon(
                   Icons.play_arrow_rounded,
                   color: _purple,
@@ -216,6 +255,7 @@ class _CourseDetailsState extends State<CourseDetails> {
 
   /// Favourite state of the clicked course, shared with the rest of the app.
   Widget _favoriteButton() {
+    // ValueListenableBuilder = rebuilds heart when favourites change.
     return ValueListenableBuilder<Set<String>>(
       valueListenable: favoriteIds,
       builder: (context, ids, _) {
@@ -234,8 +274,10 @@ class _CourseDetailsState extends State<CourseDetails> {
     required VoidCallback onTap,
     Color color = _heading,
   }) {
+    // GestureDetector = makes the round icon button tappable.
     return GestureDetector(
       onTap: onTap,
+      // Container = white circle behind the icon.
       child: Container(
         width: 44,
         height: 44,
@@ -243,6 +285,7 @@ class _CourseDetailsState extends State<CourseDetails> {
           color: Colors.white,
           shape: BoxShape.circle,
         ),
+        // Icon = symbol drawn inside the round button.
         child: Icon(icon, color: color, size: 22),
       ),
     );
@@ -251,6 +294,7 @@ class _CourseDetailsState extends State<CourseDetails> {
   // ------------------------------------------------------------- content
 
   Widget _tag() {
+    // Container = purple category tag chip.
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -280,16 +324,19 @@ class _CourseDetailsState extends State<CourseDetails> {
     );
   }
 
+  // Row: instructor photo on the left, name and role on the right.
   Widget _instructor() {
     return Row(
       children: [
         ClipOval(
+          // Image.asset = instructor's round profile photo.
           child: Image.asset(
             'assets/images/profile/avatar.jpg',
             width: 46,
             height: 46,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => Container(
+            // Container = fallback avatar when the photo is missing.
+            errorBuilder: (_, _, _) => Container(
               width: 46,
               height: 46,
               color: _chipBg,
@@ -298,7 +345,9 @@ class _CourseDetailsState extends State<CourseDetails> {
           ),
         ),
         const SizedBox(width: 12),
+        // Expanded = name column fills the leftover width.
         Expanded(
+          // Column = instructor name above the role.
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -322,14 +371,17 @@ class _CourseDetailsState extends State<CourseDetails> {
     );
   }
 
+  // Row of three small cards: rating, students and duration.
   Widget _stats() {
     return Row(
       children: [
         _statCard(
+          // Row = star icon beside the rating number.
           child: Row(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              // Icon = gold star before the rating value.
               const Icon(Icons.star_rounded, color: _star, size: 18),
               const SizedBox(width: 4),
               Text(
@@ -373,13 +425,16 @@ class _CourseDetailsState extends State<CourseDetails> {
   }
 
   Widget _statCard({required Widget child, required String label}) {
+    // Expanded = makes every stat card share equal width.
     return Expanded(
+      // Container = light purple stat card background.
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
         decoration: BoxDecoration(
           color: _chipBg,
           borderRadius: BorderRadius.circular(18),
         ),
+        // Column = stat value above its label.
         child: Column(
           children: [
             child,
@@ -413,13 +468,14 @@ class _CourseDetailsState extends State<CourseDetails> {
     return ValueListenableBuilder<Map<String, List<QuizAttempt>>>(
       valueListenable: quizAttemptsOf(currentUser.value),
       builder: (context, attempts, _) {
+        // ValueListenableBuilder = rebuilds when lessons are completed.
         return ValueListenableBuilder<Set<String>>(
           valueListenable: completedLessons,
           builder: (context, done, _) {
             final total = courseLessonCount(course);
             final completed = completedInCourse(course);
-            final percent = progressPercent(completed, total);
 
+            // Column = heading, progress card, then module rows.
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -427,16 +483,21 @@ class _CourseDetailsState extends State<CourseDetails> {
                 _sectionHeading('Curriculum'),
                 const SizedBox(height: 12),
                 if (total > 0) ...[
-                  _courseProgress(completed, total, percent),
+                  ProgressCard(completed: completed, total: total),
                   const SizedBox(height: 14),
                   // Stage 1 done → the final quiz appears (never earlier).
                   if (completed >= total) ...[
-                    _completionCard(),
+                    CompletionCard(course: course),
                     const SizedBox(height: 14),
                   ],
                 ],
+                // Every module row (same widget as the My Learning cards).
                 for (var i = 0; i < course.modules.length; i++) ...[
-                  _moduleRow(i, done),
+                  ModuleRow(
+                    course: course,
+                    moduleIndex: i,
+                    completedLessons: done,
+                  ),
                   const SizedBox(height: 12),
                 ],
               ],
@@ -444,233 +505,6 @@ class _CourseDetailsState extends State<CourseDetails> {
           },
         );
       },
-    );
-  }
-
-  /// Course completion card — the two-stage rule in one place:
-  ///
-  /// * all lessons done, quiz not passed → "Course learning completed" with
-  ///   **Take Quiz**;
-  /// * quiz passed (>= 75%) → "Course successfully completed".
-  ///
-  /// Shown only when every lesson is completed: the quiz is never offered
-  /// before the learning stage is finished.
-  Widget _completionCard() {
-    final passed = isQuizPassed(course.id);
-    final attempt = latestQuizAttempt(course.id);
-    final total = courseLessonCount(course);
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: passed ? const Color(0xFFE4F7EC) : const Color(0xFFEEE9FF),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                passed
-                    ? Icons.check_circle_rounded
-                    : Icons.emoji_events_rounded,
-                color: passed ? const Color(0xFF25A55F) : _purple,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  passed
-                      ? 'Course successfully completed'
-                      : 'Course learning completed',
-                  style: const TextStyle(
-                    color: _heading,
-                    fontSize: 15.5,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            passed
-                ? 'Final quiz passed with ${attempt?.percentage}% '
-                      '(${attempt?.score}/${attempt?.total}).'
-                : 'All $total lessons completed. Take the final quiz — '
-                      '$quizQuestionCount questions, $quizPassingPercentage% '
-                      'or higher completes the course.',
-            style: TextStyle(
-              color: passed ? const Color(0xFF25A55F) : _muted,
-              fontSize: 13,
-              height: 1.5,
-            ),
-          ),
-          if (!passed) ...[
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                // Course learning completed -> Open the final course quiz.
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => QuizPage(courseId: course.id),
-                  ),
-                ),
-                style: FilledButton.styleFrom(
-                  backgroundColor: _purple,
-                  padding: const EdgeInsets.symmetric(vertical: 13),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                child: const Text(
-                  'Take Quiz',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  /// Course progress — `15 / 43 lessons completed` + `35%`, calculated from
-  /// the real lesson data of THIS course.
-  Widget _courseProgress(int completed, int total, int percent) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: _chipBg,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  progressLabel(completed, total),
-                  style: const TextStyle(color: _muted, fontSize: 13),
-                ),
-              ),
-              Text(
-                '$percent%',
-                style: const TextStyle(
-                  color: _purple,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: total == 0 ? 0 : completed / total,
-              minHeight: 8,
-              color: _purple,
-              backgroundColor: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// One module row — the existing card design, now clickable and carrying
-  /// this module's own progress.
-  Widget _moduleRow(int moduleIndex, Set<String> done) {
-    final module = course.modules[moduleIndex];
-    final total = module.lessons.length;
-    var completed = 0;
-    for (var i = 0; i < total; i++) {
-      if (done.contains(lessonIdFor(course, moduleIndex, i))) completed++;
-    }
-
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      // User taps a module -> Open the lesson list for that module.
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ModuleDetailPage(
-            courseId: course.id,
-            moduleId: moduleIdFor(course, moduleIndex),
-          ),
-        ),
-      ),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: _chipBg,
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: _purple,
-                borderRadius: BorderRadius.circular(13),
-              ),
-              child: const Icon(
-                Icons.desktop_mac_outlined,
-                color: Colors.white,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    module.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: _heading,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  // Calculated: '9 lessons · 1h 45m'.
-                  Text(
-                    moduleMeta(module),
-                    style: const TextStyle(color: _muted, fontSize: 12),
-                  ),
-                  if (completed > 0) ...[
-                    const SizedBox(height: 3),
-                    Text(
-                      '$completed / $total lessons completed',
-                      style: const TextStyle(
-                        color: _purple,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right_rounded, color: _muted),
-          ],
-        ),
-      ),
     );
   }
 
@@ -685,6 +519,7 @@ class _CourseDetailsState extends State<CourseDetails> {
   /// The purchase check is ALWAYS "signed-in user id + course id" (never one
   /// global flag), so user A can own a course that user B does not.
   Widget _buyBar() {
+    // Container = white bar pinned to the bottom of the page.
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
       decoration: BoxDecoration(
@@ -697,20 +532,25 @@ class _CourseDetailsState extends State<CourseDetails> {
           ),
         ],
       ),
+      // SafeArea = keeps the bar above the home indicator.
       child: SafeArea(
         top: false,
+        // ValueListenableBuilder = rebuilds the bar on account switch.
         child: ValueListenableBuilder<String>(
           valueListenable: currentUser,
           builder: (context, user, _) {
+            // ValueListenableBuilder = rebuilds when purchases change.
             return ValueListenableBuilder<Set<String>>(
               valueListenable: purchasesOf(user),
               builder: (context, bought, _) {
                 final purchased = bought.contains(course.id);
+                // ValueListenableBuilder = rebuilds when the cart changes.
                 return ValueListenableBuilder<Set<String>>(
                   valueListenable: cartIds,
                   builder: (context, inCartIds, _) {
                     final inCart = inCartIds.contains(course.id);
 
+                    // Column = unlocked banner above the price row.
                     return Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -719,8 +559,10 @@ class _CourseDetailsState extends State<CourseDetails> {
                           const _UnlockedBanner(),
                           const SizedBox(height: 12),
                         ],
+                        // Row = price on the left, action button on the right.
                         Row(
                           children: [
+                            // Column = 'Price' label above the amount.
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisSize: MainAxisSize.min,
@@ -741,6 +583,7 @@ class _CourseDetailsState extends State<CourseDetails> {
                               ],
                             ),
                             const SizedBox(width: 18),
+                            // Expanded = stretches the action button wide.
                             Expanded(
                               child: _stateButton(
                                 purchased: purchased,
@@ -764,6 +607,7 @@ class _CourseDetailsState extends State<CourseDetails> {
   /// The single action button for the current state of this course.
   Widget _stateButton({required bool purchased, required bool inCart}) {
     if (purchased) {
+      // FilledButton = starts learning the purchased course.
       return FilledButton(
         onPressed: _startLearning,
         style: FilledButton.styleFrom(
@@ -781,6 +625,7 @@ class _CourseDetailsState extends State<CourseDetails> {
     }
 
     if (inCart) {
+      // FilledButton = opens the cart page.
       return FilledButton(
         onPressed: _openCart,
         style: FilledButton.styleFrom(
@@ -797,6 +642,7 @@ class _CourseDetailsState extends State<CourseDetails> {
       );
     }
 
+    // OutlinedButton = adds this course to the cart.
     return OutlinedButton(
       onPressed: _addToCart,
       style: OutlinedButton.styleFrom(
@@ -819,6 +665,7 @@ class _UnlockedBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Container = green "course unlocked" banner.
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -826,6 +673,7 @@ class _UnlockedBanner extends StatelessWidget {
         color: const Color(0xFFE4F7EC),
         borderRadius: BorderRadius.circular(14),
       ),
+      // Row = green check beside the unlocked label.
       child: const Row(
         children: [
           Icon(Icons.check_circle_rounded, color: Color(0xFF25A55F), size: 18),

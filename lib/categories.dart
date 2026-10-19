@@ -5,14 +5,26 @@ import 'course.dart';
 import 'widgets/nav_bar.dart';
 
 // =====================================================
+// UI STRUCTURE (SCREEN VIEW)
+//  1. Back button           -> GestureDetector + Container + Icon, tap -> back
+//  2. Title                 -> Text "Categories"
+//  3. Category grid         -> GridView (2 columns) of category cards
+//  4. Category card         -> Container + Icon + Text name + count, tap -> Category Courses
+//  5. Bottom navigation     -> NavBar Row of tabs (Home pops back)
+// =====================================================
 // CATEGORIES PAGE
 // Shows the category grid (Web, Design, Marketing ...).
 // =====================================================
-class categories extends StatefulWidget {
-  const categories({super.key});
+
+/// CATEGORIES PAGE (StatefulWidget)
+/// Shows a grid of course categories. Tapping a card opens the list of
+/// courses in that category (the CategoryCoursesPage).
+/// Layout: Scaffold -> SafeArea -> Column (top bar, GridView of category cards).
+class CategoriesPage extends StatefulWidget {
+  const CategoriesPage({super.key});
 
   @override
-  State<categories> createState() => _categoriesState();
+  State<CategoriesPage> createState() => _CategoriesPageState();
 }
 
 /// One entry of the Categories grid: how it looks and which course list it
@@ -26,6 +38,7 @@ class _CategoryInfo {
   const _CategoryInfo(this.name, this.icon, this.bg, this.fg);
 }
 
+// Every category shown in the grid, with its icon and colours.
 const List<_CategoryInfo> _categoryInfos = [
   _CategoryInfo(
     'Development',
@@ -65,7 +78,7 @@ const List<_CategoryInfo> _categoryInfos = [
   ),
 ];
 
-class _categoriesState extends State<categories> {
+class _CategoriesPageState extends State<CategoriesPage> {
   void _openCategory(String category) {
     // Category tapped -> Open the list of courses in this category.
     Navigator.push(
@@ -79,20 +92,26 @@ class _categoriesState extends State<categories> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Scaffold = the whole Categories page (coloured background + body).
       backgroundColor: const Color(0xFFF4F1FF),
+      // SafeArea = keeps content away from the notch / status bar.
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(18, 10, 18, 0),
+          // Column = vertical stack: top bar, then the category grid.
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // top bar
+              // Row = back button and the page title on one line.
               Row(
                 children: [
+                  // GestureDetector = taps go back to the previous page.
                   GestureDetector(
                     onTap: () {
                       Navigator.pop(context);
                     },
+                    // Container = white circle behind the back icon.
                     child: Container(
                       width: 42,
                       height: 42,
@@ -100,6 +119,7 @@ class _categoriesState extends State<categories> {
                         color: Colors.white,
                         shape: BoxShape.circle,
                       ),
+                      // Icon = the arrow symbol inside the circle.
                       child: const Icon(
                         Icons.swap_horiz,
                         color: Color(0xFF2B2356),
@@ -121,7 +141,9 @@ class _categoriesState extends State<categories> {
               const SizedBox(height: 22),
 
               // category cards — same style, real course counts, all clickable
+              // Expanded = fills the leftover height with the grid.
               Expanded(
+                // GridView -> 2 columns of category cards.
                 child: GridView.builder(
                   padding: const EdgeInsets.only(bottom: 18),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -145,9 +167,11 @@ class _categoriesState extends State<categories> {
           ),
         ),
       ),
+      // Shared bottom navigation bar (same one used on every page).
       bottomNavigationBar: NavBar(
         currentIndex: 0,
         onTap: (index) {
+          // Home tab -> go back to the Home page.
           if (index == 0) Navigator.pop(context);
         },
       ),
@@ -169,18 +193,22 @@ class _CategoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // GestureDetector = opens the course list of this category.
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
+      // Container = the white rounded card background.
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(28),
         ),
+        // Column = stacks icon, name and course count.
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Container = the coloured rounded icon badge.
             Container(
               width: 48,
               height: 48,
@@ -188,6 +216,7 @@ class _CategoryCard extends StatelessWidget {
                 color: info.bg,
                 borderRadius: BorderRadius.circular(16),
               ),
+              // Icon = the category's own symbol.
               child: Icon(info.icon, color: info.fg, size: 24),
             ),
             const Spacer(),

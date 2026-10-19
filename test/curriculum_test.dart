@@ -285,7 +285,7 @@ void main() {
     );
 
     // Home → Continue Learning takes the user straight back to that lesson.
-    await tester.pumpWidget(const MaterialApp(home: index()));
+    await tester.pumpWidget(const MaterialApp(home: HomePage()));
     await tester.pump(const Duration(seconds: 1));
 
     expect(

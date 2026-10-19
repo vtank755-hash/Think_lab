@@ -5,6 +5,12 @@ import 'lesson_page.dart';
 import 'progress.dart';
 import 'purchases.dart';
 
+// =====================================================
+// UI STRUCTURE (SCREEN VIEW)
+//  1. Resume lesson            -> resumePoint (last watched, else first)
+//  2. Purchase check           -> isPurchased (not bought -> returns false)
+//  3. Lesson page              -> Navigator.push (opens the video lesson)
+// =====================================================
 /// Opens THIS user's learning content for [course]:
 ///
 /// * the lesson they stopped at (`resumePoint`, e.g. "Module 2 → Lesson 5"),
@@ -21,6 +27,7 @@ bool openCourseLesson(BuildContext context, Course course) {
   String? targetModule;
   String? targetLesson;
 
+  // Ask progress.dart where this user last stopped for this course.
   final point = resumePoint(course);
   if (point != null &&
       moduleIndexOf(course, point.$1) >= 0 &&
@@ -35,6 +42,8 @@ bool openCourseLesson(BuildContext context, Course course) {
     targetLesson = lessonIdFor(course, 0, 0);
   }
 
+  // No lesson found, OR the course is not purchased yet -> do nothing
+  // (the caller falls back to the course details page).
   if (targetModule == null || targetLesson == null || !isPurchased(course)) {
     return false;
   }

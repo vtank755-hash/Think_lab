@@ -1,9 +1,6 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+// Simple app-start tests:
+// 1) the splash screen shows the LearnHub name and tagline;
+// 2) after 3 seconds the app moves to the Login page by itself.
 
 import 'package:flutter_test/flutter_test.dart';
 
@@ -15,18 +12,6 @@ void main() {
 
     expect(find.text('LearnHub'), findsOneWidget);
     expect(find.text('Learn Anytime, Anywhere'), findsOneWidget);
-    expect(find.text('Enter'), findsOneWidget);
-  });
-
-  testWidgets('Enter opens login screen immediately', (
-    WidgetTester tester,
-  ) async {
-    await tester.pumpWidget(const LearnHubApp());
-    await tester.tap(find.text('Enter'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Login'), findsOneWidget);
-    expect(find.text('Welcome back'), findsOneWidget);
   });
 
   testWidgets('automatically opens login screen after three seconds', (
@@ -37,5 +22,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Login'), findsOneWidget);
+    expect(find.text('Welcome back'), findsOneWidget);
   });
 }

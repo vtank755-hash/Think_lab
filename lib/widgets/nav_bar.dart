@@ -20,6 +20,12 @@ const navItems = <NavItem>[
   NavItem('Profile', Icons.person_rounded, Icons.person_outline),
 ];
 
+// =====================================================
+// UI STRUCTURE (SCREEN VIEW)
+//  1. Bar background        -> Container (white, rounded top, shadow)
+//  2. Tab row               -> Row of 4 tabs: Home, Learning, Wishlist, Profile
+//  3. One tab               -> GestureDetector + Column (Icon + Text), tap -> switch tab
+// =====================================================
 /// Reusable bottom navigation bar.
 ///
 /// Every page links to this widget instead of declaring its own bar, so the
@@ -44,6 +50,7 @@ class NavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 18),
+      // Container gives the bar a white rounded top and a soft shadow.
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -56,6 +63,7 @@ class NavBar extends StatelessWidget {
         ],
       ),
       child: Row(
+        // Row -> the four tabs side by side.
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           for (var i = 0; i < navItems.length; i++)
@@ -65,17 +73,21 @@ class NavBar extends StatelessWidget {
     );
   }
 
+  // One tab: icon on top, label below. The selected tab is purple.
   Widget _tab(BuildContext context, int index, NavItem item) {
     final selected = index == currentIndex;
 
+    // GestureDetector = tells the bar which tab the user tapped.
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () => onTap(index),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        // Column = stacks one tab's icon above its label.
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Icon = the tab icon, purple when this tab is selected.
             Icon(
               selected ? item.activeIcon : item.icon,
               color: selected ? _purple : _grey,

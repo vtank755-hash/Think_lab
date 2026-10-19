@@ -24,6 +24,20 @@ const _heart = Color(0xFFFF4D6D);
 /// * a course the current user already owns can never be bought again — the
 ///   card switches to the existing "Go to Cart" / "Start Learning" states.
 // =====================================================
+// UI STRUCTURE (SCREEN VIEW)
+//  1. Back button          -> GestureDetector + Icon (tap -> back to Home)
+//  2. Title                -> Text "Wishlist"
+//  3. Saved count          -> Text "N saved courses"
+//  4. Course cards         -> ListView.separated of wishlist cards
+//  5. Wishlist card        -> GestureDetector + Container + Image.asset (tap -> Course Details)
+//  6. Heart button         -> GestureDetector + Icon (tap -> remove from wishlist)
+//  7. Instructor           -> Text
+//  8. Rating row           -> Icon star + Text rating
+//  9. Price + pill row     -> Text price + pill button
+// 10. Action pill          -> GestureDetector Container + Text ("Add to Cart" / "Go to Cart" / "Start Learning")
+// 11. Empty view           -> Text "No saved courses yet" + Browse courses button
+// =====================================================
+// =====================================================
 // WISHLIST PAGE
 // Shows courses saved by the current user.
 // =====================================================
@@ -47,20 +61,25 @@ class WishlistPage extends StatelessWidget {
     return ValueListenableBuilder<String>(
       valueListenable: currentUser,
       builder: (context, user, _) {
+        // ValueListenableBuilder = rebuilds when this wishlist changes.
         return ValueListenableBuilder<Set<String>>(
           valueListenable: wishlistOf(user),
           builder: (context, savedIds, _) {
             // Ids → course objects, straight from the shared dataset.
             final courses = savedIds.map(courseById).toList();
 
+            // Column = header on top, saved-course list below it.
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _header(courses.length),
                 if (courses.isEmpty)
+                  // Expanded = empty view fills the whole list area.
                   Expanded(child: _EmptyWishlist(onBrowse: onBack))
                 else
+                  // Expanded = saved-course list fills the rest.
                   Expanded(
+                    // ListView.separated = scrolls the wishlist cards.
                     child: ListView.separated(
                       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
                       itemCount: courses.length,
@@ -84,11 +103,14 @@ class WishlistPage extends StatelessWidget {
   Widget _header(int count) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
+      // Row = switch button, then the title and saved-count block.
       child: Row(
         children: [
           _roundButton(icon: Icons.swap_horiz, onTap: onBack),
           const SizedBox(width: 12),
+          // Expanded = title block takes the remaining header width.
           Expanded(
+            // Column = "Wishlist" title above the saved-course count.
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -118,8 +140,10 @@ class WishlistPage extends StatelessWidget {
   }
 
   Widget _roundButton({required IconData icon, VoidCallback? onTap}) {
+    // GestureDetector = makes the round header button tappable.
     return GestureDetector(
       onTap: onTap,
+      // Container = white circular button background.
       child: Container(
         width: 42,
         height: 42,
@@ -170,9 +194,11 @@ class _WishlistCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The WHOLE card is tappable -> opens the Course Details page.
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onOpen,
+      // Container gives each card the white rounded look.
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
@@ -186,11 +212,13 @@ class _WishlistCard extends StatelessWidget {
             ),
           ],
         ),
+        // Row = course image on the left, details on the right.
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(14),
+              // Image.asset = the saved course thumbnail.
               child: Image.asset(
                 course.image,
                 width: 74,
@@ -208,10 +236,13 @@ class _WishlistCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
+            // Expanded = card details take the rest of the width.
             Expanded(
+              // Column = title row, instructor, rating, price row.
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Row = course title with the heart on its right.
                   Row(
                     children: [
                       Expanded(
@@ -240,6 +271,7 @@ class _WishlistCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 6),
+                  // Row = star icon + rating number.
                   Row(
                     children: [
                       const Icon(Icons.star_rounded, color: _star, size: 16),
@@ -255,6 +287,7 @@ class _WishlistCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 10),
+                  // Row = price on the left, action pill on the right.
                   Row(
                     children: [
                       Text(
@@ -293,6 +326,7 @@ class _WishlistCard extends StatelessWidget {
   /// The pill button — the same design in every state, using the wording the
   /// app already has ("Add to Cart" / "Go to Cart" / "Start Learning").
   Widget _action(BuildContext context) {
+    // ValueListenableBuilder = pill label updates when user/cart changes.
     return ValueListenableBuilder<String>(
       valueListenable: currentUser,
       builder: (context, user, _) {
@@ -327,9 +361,11 @@ class _WishlistCard extends StatelessWidget {
   }
 
   Widget _pill({required String label, required VoidCallback onTap}) {
+    // GestureDetector = makes the pill button tappable.
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
+      // Container = purple rounded pill background.
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
         decoration: BoxDecoration(
@@ -361,9 +397,11 @@ class _EmptyWishlist extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
+        // Column = icon, empty message, then the browse button.
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            // Container = big pale circle behind the heart icon.
             Container(
               width: 96,
               height: 96,
@@ -393,6 +431,7 @@ class _EmptyWishlist extends StatelessWidget {
               style: TextStyle(color: _muted, fontSize: 14, height: 1.5),
             ),
             const SizedBox(height: 22),
+            // FilledButton = "Browse courses" leaves the empty wishlist.
             FilledButton(
               onPressed: onBrowse,
               style: FilledButton.styleFrom(

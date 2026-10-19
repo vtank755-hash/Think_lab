@@ -11,7 +11,7 @@ void main() {
   testWidgets('Home screen uses the shared NavBar', (tester) async {
     ignoreOverflowErrors();
 
-    await tester.pumpWidget(const MaterialApp(home: index()));
+    await tester.pumpWidget(const MaterialApp(home: HomePage()));
     await tester.pump(const Duration(seconds: 1));
 
     final bar = tester.widget<NavBar>(find.byType(NavBar));
@@ -32,13 +32,13 @@ void main() {
   ) async {
     ignoreOverflowErrors();
 
-    await tester.pumpWidget(const MaterialApp(home: index()));
+    await tester.pumpWidget(const MaterialApp(home: HomePage()));
     await tester.pump(const Duration(seconds: 1));
 
     // "See all" next to Categories pushes the categories page.
     await tester.tap(find.text('See all').first);
     await tester.pumpAndSettle();
-    expect(find.byType(categories), findsOneWidget);
+    expect(find.byType(CategoriesPage), findsOneWidget);
     // Only the top route is visible to finders, so one bar is on screen.
     expect(find.byType(NavBar), findsOneWidget);
     for (final item in navItems) {
@@ -48,7 +48,7 @@ void main() {
     // Home on the categories bar goes back to the home screen.
     await tester.tap(find.text('Home'));
     await tester.pumpAndSettle();
-    expect(find.byType(categories), findsNothing);
+    expect(find.byType(CategoriesPage), findsNothing);
     expect(find.byType(NavBar), findsOneWidget);
   });
 }

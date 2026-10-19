@@ -10,12 +10,30 @@ const _purple = Color(0xFF6B45F0);
 const _star = Color(0xFFF5A623);
 
 // =====================================================
+// UI STRUCTURE (SCREEN VIEW)
+//  1. Back button          -> GestureDetector + Icon (tap -> previous page)
+//  2. Title                -> Text "Course Cart"
+//  3. Clear all button     -> TextButton (tap -> empty the cart)
+//  4. Course cards         -> ListView.separated of cart cards
+//  5. Cart card            -> Container + Image.asset + title + rating + price
+//  6. Remove button        -> GestureDetector + Icon (tap -> remove from cart)
+//  7. Empty cart view      -> Icon + Text "Your cart is empty" + Browse courses button
+//  8. Summary sheet        -> Container + Text "Summary" + Total row
+//  9. Pay Now button       -> FilledButton (tap -> Checkout page)
+// =====================================================
+// =====================================================
 // CART PAGE
 // Shows the selected courses and the total cart amount.
 // =====================================================
+
+/// CART PAGE (StatelessWidget)
+/// A StatelessWidget is enough here: ValueListenableBuilder rebuilds the page
+/// by itself whenever the cart changes (item removed, total changes).
+/// Layout: Scaffold -> SafeArea -> Column (title bar, course list, price summary, Pay Now button).
 class CartPage extends StatelessWidget {
   const CartPage({super.key});
 
+  // Shows a small floating message (SnackBar), e.g. "removed" / "cleared".
   void _snack(BuildContext context, String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -31,25 +49,33 @@ class CartPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Scaffold = the whole cart page (background colour + body).
     return Scaffold(
       backgroundColor: const Color(0xFFF6F5FB),
+      // SafeArea = keeps the cart content away from the notch / status bar.
       body: SafeArea(
+        // Listens to the shared cart: the page rebuilds on every cart change.
         child: ValueListenableBuilder<Set<String>>(
           valueListenable: cartIds,
           builder: (context, ids, _) {
+            // Course ids -> actual course objects, from the shared cart file.
             final courses = cartCourses;
 
+            // Column -> title bar + scrollable course list + bottom price summary.
             return Column(
               children: [
                 _header(context, courses.isNotEmpty),
                 if (courses.isEmpty)
+                  // Expanded = empty-cart view takes all leftover height.
                   const Expanded(child: _EmptyCart())
                 else
+                  // Expanded = scrollable cart list fills the rest.
                   Expanded(
+                    // Draws one cart card per course, with a gap between cards.
                     child: ListView.separated(
                       padding: const EdgeInsets.fromLTRB(18, 6, 18, 18),
                       itemCount: courses.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      separatorBuilder: (_, _) => const SizedBox(height: 12),
                       itemBuilder: (context, index) => _CartCard(
                         course: courses[index],
                         onRemove: () {
@@ -74,6 +100,7 @@ class CartPage extends StatelessWidget {
   Widget _header(BuildContext context, bool hasItems) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 14, 18, 10),
+      // Row = back button, page title, then "Clear all" on the right.
       child: Row(
         children: [
           _roundButton(
@@ -81,6 +108,7 @@ class CartPage extends StatelessWidget {
             onTap: () => Navigator.pop(context),
           ),
           const SizedBox(width: 12),
+          // Expanded = title stretches, pushing "Clear all" to the right.
           const Expanded(
             child: Text(
               'Course Cart',
@@ -93,6 +121,7 @@ class CartPage extends StatelessWidget {
           ),
           if (hasItems)
             TextButton(
+              // "Clear all" removes every course from this user's cart.
               onPressed: () {
                 clearCart();
                 _snack(context, 'Cart cleared');
@@ -112,8 +141,10 @@ class CartPage extends StatelessWidget {
   }
 
   Widget _roundButton({required IconData icon, required VoidCallback onTap}) {
+    // GestureDetector = makes the round icon button tappable.
     return GestureDetector(
       onTap: onTap,
+      // Container = white circular button background.
       child: Container(
         width: 42,
         height: 42,
@@ -128,6 +159,7 @@ class CartPage extends StatelessWidget {
 
   // ----------------------------------------------------------- summary
 
+  // Bottom white sheet: total amount + the Pay Now button.
   Widget _summary(BuildContext context, List<Course> courses, String total) {
     return Container(
       width: double.infinity,
@@ -136,6 +168,7 @@ class CartPage extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
       ),
+      // Column = "Summary" heading, total row, then the Pay Now button.
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -169,6 +202,7 @@ class CartPage extends StatelessWidget {
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
+            // FilledButton = purple "Pay Now" button that opens Checkout.
             child: FilledButton(
               // The ONLY entry point to payment in the whole app.
               // User taps Pay Now -> Open the Checkout page.
@@ -186,6 +220,7 @@ class CartPage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(30),
                 ),
               ),
+              // Row = "Pay Now" label with the forward arrow icon.
               child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -215,6 +250,7 @@ class CartPage extends StatelessWidget {
 
 // ------------------------------------------------------------- item card
 
+/// One row in the cart list: course image, details, price and a remove button.
 class _CartCard extends StatelessWidget {
   final Course course;
   final VoidCallback onRemove;
@@ -223,6 +259,7 @@ class _CartCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Container gives each card the white rounded look.
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -236,17 +273,19 @@ class _CartCard extends StatelessWidget {
           ),
         ],
       ),
+      // Row -> course image on the left, details in the middle, price on the right.
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(14),
+            // Image.asset = the course thumbnail.
             child: Image.asset(
               course.image,
               width: 68,
               height: 68,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
+              errorBuilder: (_, _, _) => Container(
                 width: 68,
                 height: 68,
                 color: const Color(0xFFEEE9FF),
@@ -255,7 +294,9 @@ class _CartCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
+          // Expanded = course details fill the middle of the card.
           Expanded(
+            // Column = title, meta line, then the rating row.
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -275,6 +316,7 @@ class _CartCard extends StatelessWidget {
                   style: const TextStyle(color: _muted, fontSize: 12),
                 ),
                 const SizedBox(height: 7),
+                // Row = star + rating and student count.
                 Row(
                   children: [
                     const Icon(Icons.star_rounded, color: _star, size: 15),
@@ -293,6 +335,7 @@ class _CartCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
+          // Right column: the price, then the remove (delete) button.
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -305,8 +348,10 @@ class _CartCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 10),
+              // Tap delete -> remove this course from the cart.
               GestureDetector(
                 onTap: onRemove,
+                // Container = round delete-button background.
                 child: Container(
                   width: 32,
                   height: 32,
@@ -331,6 +376,7 @@ class _CartCard extends StatelessWidget {
 
 // -------------------------------------------------------------- empty
 
+/// Shown in the middle of the page when the cart has no courses at all.
 class _EmptyCart extends StatelessWidget {
   const _EmptyCart();
 
@@ -339,9 +385,11 @@ class _EmptyCart extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
+        // Column = icon, empty message, then the browse button.
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            // Container = big pale circle behind the cart icon.
             Container(
               width: 96,
               height: 96,
@@ -371,6 +419,7 @@ class _EmptyCart extends StatelessWidget {
               style: TextStyle(color: _muted, fontSize: 14, height: 1.5),
             ),
             const SizedBox(height: 22),
+            // FilledButton = "Browse courses" closes the empty cart view.
             FilledButton(
               onPressed: () => Navigator.pop(context),
               style: FilledButton.styleFrom(

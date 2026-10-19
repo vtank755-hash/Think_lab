@@ -10,19 +10,45 @@ const _heading = Colors.black;
 const _muted = Colors.black;
 const _fieldBackground = Color(0xFFEEF0FF);
 
-class login_user extends StatefulWidget {
-  const login_user({super.key});
+// =====================================================
+// UI STRUCTURE (SCREEN VIEW)
+//  1. App logo         -> Container + CustomPaint (gradient box logo)
+//  2. Title            -> Text ("Welcome back")
+//  3. Subtitle         -> Text ("Log in to continue learning.")
+//  4. EMAIL label      -> Text ("EMAIL")
+//  5. Email field      -> TextFormField + TextEditingController
+//  6. PASSWORD label   -> Text ("PASSWORD")
+//  7. Password field   -> TextFormField + eye icon (GestureDetector + Icon)
+//  8. Forgot Password? -> Text (only text, no action)
+//  9. Login button     -> GestureDetector + Container ("Login")
+//  10. Sign Up text    -> Text.rich + TapGestureRecognizer (opens Register page)
+//  11. Admin Login text -> Text (only text, no action)
+// =====================================================
+
+/// LOGIN PAGE (StatefulWidget)
+/// StatefulWidget is used here because this page holds user input
+/// (what the user types) and shows error messages, so the page has to
+/// rebuild itself while the user is typing.
+/// Layout: Scaffold -> SafeArea -> SingleChildScrollView -> Column
+/// (top logo, form fields, login button).
+class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
 
   @override
-  State<login_user> createState() => _login_userState();
+  State<LoginPage> createState() => _LoginPageState();
 }
 
-class _login_userState extends State<login_user> {
+class _LoginPageState extends State<LoginPage> {
+  // _formKey lets us run all the form validations with one call.
   final _formKey = GlobalKey<FormState>();
+  // TextEditingController stores the typed email so we can read it on Login.
   final _email = TextEditingController();
+  // TextEditingController stores the typed password so we can read it on Login.
   final _password = TextEditingController();
+  // true = password hidden (shown as dots) until the eye icon is tapped.
   bool _obscurePassword = true;
 
+  // Free the controllers when this page is closed.
   @override
   void dispose() {
     _email.dispose();
@@ -62,7 +88,7 @@ class _login_userState extends State<login_user> {
       // Login successful -> Go to the Home page.
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const index()),
+        MaterialPageRoute(builder: (context) => const HomePage()),
       );
     }
   }
@@ -70,11 +96,14 @@ class _login_userState extends State<login_user> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Scaffold = the whole login page (white background + body).
       backgroundColor: Colors.white,
+      // SafeArea = keeps the form away from the notch / status bar.
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
             final padding = constraints.maxWidth > 520 ? 40.0 : 28.0;
+            // SingleChildScrollView makes the page scrollable on small screens.
             return SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(padding, 30, padding, 30),
               child: Center(
@@ -82,6 +111,7 @@ class _login_userState extends State<login_user> {
                   constraints: const BoxConstraints(maxWidth: 480),
                   child: Form(
                     key: _formKey,
+                    // Column -> vertical stack of logo + form fields + login button.
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -108,6 +138,7 @@ class _login_userState extends State<login_user> {
                         const SizedBox(height: 42),
                         const _FieldLabel('EMAIL'),
                         const SizedBox(height: 10),
+                        // TextFormField = email input box that checks the typed email.
                         TextFormField(
                           controller: _email,
                           validator: _validateEmail,
@@ -124,6 +155,7 @@ class _login_userState extends State<login_user> {
                               borderRadius: BorderRadius.circular(20),
                               borderSide: BorderSide.none,
                             ),
+                            // Icon = email symbol shown inside the email field.
                             prefixIcon: const Icon(
                               Icons.email_outlined,
                               color: _primary,
@@ -147,6 +179,7 @@ class _login_userState extends State<login_user> {
                         const SizedBox(height: 25),
                         const _FieldLabel('PASSWORD'),
                         const SizedBox(height: 10),
+                        // TextFormField = password input box (dots + validation).
                         TextFormField(
                           controller: _password,
                           validator: _validatePassword,
@@ -164,17 +197,20 @@ class _login_userState extends State<login_user> {
                               borderRadius: BorderRadius.circular(20),
                               borderSide: BorderSide.none,
                             ),
+                            // Icon = lock symbol shown inside the password field.
                             prefixIcon: const Icon(
                               Icons.lock_outline,
                               color: _primary,
                               size: 25,
                             ),
+                            // Eye icon taps show or hide the password.
                             suffixIcon: GestureDetector(
                               onTap: () {
                                 setState(() {
                                   _obscurePassword = !_obscurePassword;
                                 });
                               },
+                              // Icon = the eye that changes with hidden/shown password.
                               child: Icon(
                                 _obscurePassword
                                     ? Icons.visibility_outlined
@@ -199,13 +235,16 @@ class _login_userState extends State<login_user> {
                           ),
                         ),
                         const SizedBox(height: 18),
+                        // Align = pushes "Forgot Password?" to the right edge.
                         Align(
                           alignment: Alignment.centerRight,
                           child: Text('Forgot Password?', style: _link(18)),
                         ),
                         const SizedBox(height: 25),
+                        // Login button: gradient box, taps call _submitLogin.
                         GestureDetector(
                           onTap: _submitLogin,
+                          // Container = the gradient rounded Login button.
                           child: Container(
                             width: double.infinity,
                             height: 74,
@@ -245,11 +284,12 @@ class _login_userState extends State<login_user> {
                                   ),
                                   recognizer: TapGestureRecognizer()
                                     ..onTap = () {
+                                      // User taps Sign Up link -> Register page.
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
                                           builder: (context) =>
-                                              const register_user(),
+                                              const RegisterPage(),
                                         ),
                                       );
                                     },
@@ -281,6 +321,7 @@ class _login_userState extends State<login_user> {
     );
   }
 
+  // Small LearnHub logo: a gradient box with the logo drawn by CustomPaint.
   Widget _logo() => Container(
     width: 76,
     height: 76,
@@ -300,6 +341,7 @@ class _login_userState extends State<login_user> {
   );
 }
 
+/// Reusable label shown above each field (EMAIL, PASSWORD).
 class _FieldLabel extends StatelessWidget {
   const _FieldLabel(this.label);
   final String label;
@@ -316,6 +358,7 @@ class _FieldLabel extends StatelessWidget {
   );
 }
 
+/// Paints the white LearnHub logo: a loop shape plus a node and a line.
 class _LogoPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {

@@ -10,24 +10,49 @@ const _fieldBackground = Color(0xFFEEF0FA);
 const _lightBorder = Color(0xFFE0E3F2);
 const _white = Color(0xFFFFFFFF);
 
-class register_user extends StatefulWidget {
-  const register_user({super.key});
+// =====================================================
+// UI STRUCTURE (SCREEN VIEW)
+//  1. Back button             -> Container + GestureDetector + Icon (back arrow)
+//  2. Title                   -> Text ("Create account")
+//  3. Subtitle                -> Text ("Start your learning journey today.")
+//  4. Full Name field         -> TextFormField + TextEditingController
+//  5. Email field             -> TextFormField + TextEditingController
+//  6. Password field          -> TextFormField + eye icon (GestureDetector + Icon)
+//  7. Confirm Password field  -> TextFormField + eye icon (GestureDetector + Icon)
+//  8. Terms checkbox          -> GestureDetector + Row + Container (custom checkbox)
+//  9. Sign Up button          -> Container + GestureDetector ("Sign Up")
+//  10. Login text             -> Text.rich + TapGestureRecognizer (back to Login)
+// =====================================================
+
+/// REGISTER PAGE (StatefulWidget)
+/// StatefulWidget is used here because this page holds user input
+/// (name, email, passwords) and shows error messages, so the page has to
+/// rebuild itself while the user is typing.
+/// Layout: Scaffold -> SafeArea -> Column (back button, form fields,
+/// terms checkbox, Sign Up button).
+class RegisterPage extends StatefulWidget {
+  const RegisterPage({super.key});
 
   @override
-  State<register_user> createState() => _register_userState();
+  State<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _register_userState extends State<register_user> {
+class _RegisterPageState extends State<RegisterPage> {
+  // Each TextEditingController stores one typed field
+  // so we can read it when the user taps Sign Up.
   final _formKey = GlobalKey<FormState>();
   final _name = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _confirmPassword = TextEditingController();
 
+  // true only when the user ticks the terms checkbox.
   bool _agreeToTerms = false;
+  // These two flags hide / show the password text.
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
+  // Free all the controllers when this page is closed.
   @override
   void dispose() {
     _name.dispose();
@@ -92,6 +117,7 @@ class _register_userState extends State<register_user> {
       return;
     }
 
+    // Terms not accepted -> show a warning message and stop here.
     if (!_agreeToTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -109,8 +135,10 @@ class _register_userState extends State<register_user> {
       ),
     );
 
+    // Give the user 1 second to read the success message.
     Future.delayed(const Duration(seconds: 1), () {
       if (mounted) {
+        // Registration finished -> back to the Login page.
         Navigator.pop(context);
       }
     });
@@ -119,7 +147,9 @@ class _register_userState extends State<register_user> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Scaffold = the whole registration page (white background + body).
       backgroundColor: _white,
+      // SafeArea = keeps the form away from the notch / status bar.
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -131,6 +161,8 @@ class _register_userState extends State<register_user> {
                   constraints: const BoxConstraints(maxWidth: 480),
                   child: Form(
                     key: _formKey,
+                    // Column -> vertical stack: back button, heading, fields,
+                    // checkbox, Sign Up button.
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -162,6 +194,7 @@ class _register_userState extends State<register_user> {
                         const SizedBox(height: 40),
 
                         // Full Name Input Field
+                        // TextFormField = name box that also runs validation.
                         TextFormField(
                           controller: _name,
                           validator: _validateName,
@@ -178,6 +211,7 @@ class _register_userState extends State<register_user> {
                               borderRadius: BorderRadius.circular(20),
                               borderSide: BorderSide.none,
                             ),
+                            // Icon = person symbol inside the name field.
                             prefixIcon: const Icon(
                               Icons.person_outline,
                               color: _primary,
@@ -262,6 +296,7 @@ class _register_userState extends State<register_user> {
                               color: _primary,
                               size: 24,
                             ),
+                            // GestureDetector = taps show or hide the password.
                             suffixIcon: GestureDetector(
                               onTap: () {
                                 setState(() {
@@ -316,6 +351,7 @@ class _register_userState extends State<register_user> {
                               color: _primary,
                               size: 24,
                             ),
+                            // GestureDetector = same eye toggle for confirm password.
                             suffixIcon: GestureDetector(
                               onTap: () {
                                 setState(() {
@@ -369,6 +405,7 @@ class _register_userState extends State<register_user> {
                                 TextSpan(
                                   text: 'Login',
                                   style: _linkTextStyle(18),
+                                  // User taps Login link -> back to the Login page.
                                   recognizer: TapGestureRecognizer()
                                     ..onTap = () {
                                       Navigator.pop(context);
@@ -392,6 +429,7 @@ class _register_userState extends State<register_user> {
 
   // Back Button Widget
   Widget _buildBackButton() {
+    // Container = rounded square behind the back arrow.
     return Container(
       width: 50,
       height: 50,
@@ -400,9 +438,11 @@ class _register_userState extends State<register_user> {
         borderRadius: BorderRadius.circular(16),
       ),
       child: GestureDetector(
+        // Back arrow -> return to the previous page (Login).
         onTap: () {
           Navigator.pop(context);
         },
+        // Icon = the back arrow drawn inside the button.
         child: const Icon(Icons.arrow_back, color: _primary, size: 24),
       ),
     );
@@ -410,12 +450,14 @@ class _register_userState extends State<register_user> {
 
   // Terms and Privacy Agreement Widget
   Widget _buildTermsAgreement() {
+    // GestureDetector = tapping anywhere toggles the terms checkbox.
     return GestureDetector(
       onTap: () {
         setState(() {
           _agreeToTerms = !_agreeToTerms;
         });
       },
+      // Row -> custom checkbox on the left, agreement text on the right.
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -437,6 +479,7 @@ class _register_userState extends State<register_user> {
                 : null,
           ),
           // Agreement Text
+          // Expanded = lets the agreement text wrap in the leftover width.
           Expanded(
             child: Padding(
               padding: const EdgeInsets.only(top: 6),
@@ -474,6 +517,7 @@ class _register_userState extends State<register_user> {
 
   // Gradient Sign Up Button
   Widget _buildGradientButton() {
+    // Container = the gradient rounded Sign Up button.
     return Container(
       width: double.infinity,
       height: 74,
@@ -485,6 +529,7 @@ class _register_userState extends State<register_user> {
         ),
         borderRadius: BorderRadius.circular(20),
       ),
+      // GestureDetector = taps validate the form and register the user.
       child: GestureDetector(
         onTap: _submitRegister,
         child: const Center(

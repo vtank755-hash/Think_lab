@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:think_lab/Searches.dart';
+import 'package:think_lab/searches.dart';
 import 'package:think_lab/index.dart';
 
 import 'test_utils.dart';
@@ -10,13 +10,13 @@ void main() {
   testWidgets('Home search bar opens the Searches page', (tester) async {
     ignoreOverflowErrors();
 
-    await tester.pumpWidget(const MaterialApp(home: index()));
+    await tester.pumpWidget(const MaterialApp(home: HomePage()));
     await tester.pump(const Duration(seconds: 1));
 
     await tester.tap(find.text('Search courses, topics...'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(Searches), findsOneWidget);
+    expect(find.byType(SearchPage), findsOneWidget);
     expect(find.text('Search Courses'), findsOneWidget);
     expect(find.text('Start typing to find courses'), findsOneWidget);
     // Nothing is listed until the user searches for something.
@@ -26,7 +26,7 @@ void main() {
   testWidgets('Typing in Searches shows only matching courses', (tester) async {
     ignoreOverflowErrors();
 
-    await tester.pumpWidget(const MaterialApp(home: Searches()));
+    await tester.pumpWidget(const MaterialApp(home: SearchPage()));
     await tester.pump(const Duration(seconds: 1));
     expect(find.text('Search Courses'), findsOneWidget);
     expect(find.text('Digital Marketing Fundamentals'), findsNothing);
@@ -53,7 +53,7 @@ void main() {
   testWidgets('Tapping a search chip runs that search', (tester) async {
     ignoreOverflowErrors();
 
-    await tester.pumpWidget(const MaterialApp(home: Searches()));
+    await tester.pumpWidget(const MaterialApp(home: SearchPage()));
     await tester.pump(const Duration(seconds: 1));
 
     await tester.tap(find.text('Design').last);

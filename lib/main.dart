@@ -14,10 +14,14 @@ import 'pages/splash_screen.dart';
 // Quiz -> Result (75% or above = pass, below = retry quiz)
 // Bottom nav: Home | Learning | Wishlist | Profile
 // =============================================================
+// Starting point of every Flutter app: runApp builds the widget tree below.
 void main() {
   runApp(const LearnHubApp());
 }
 
+/// ROOT WIDGET (StatelessWidget)
+/// One MaterialApp for the whole app. It turns off the debug yellow banner,
+/// sets the Material 3 theme, and shows the SplashScreen as the first page.
 class LearnHubApp extends StatelessWidget {
   const LearnHubApp({super.key});
 

@@ -1,3 +1,5 @@
+// PURCHASES - remembers WHICH courses each user has paid for.
+// A course stays locked for a user until that user buys it at Checkout.
 import 'package:flutter/foundation.dart';
 
 import 'course.dart';

@@ -2,6 +2,20 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../login_user.dart';
 
+// =====================================================
+// UI STRUCTURE (SCREEN VIEW)
+//  1. Gradient background -> Container (full-screen purple gradient)
+//  2. App logo            -> Container + CustomPaint (logo painter)
+//  3. App name            -> Text ("LearnHub")
+//  4. Tagline             -> Text ("Learn Anytime, Anywhere")
+//  5. Loading circle      -> CircularProgressIndicator (auto to Login after 3s)
+// =====================================================
+
+/// SPLASH SCREEN (StatefulWidget)
+/// StatefulWidget is used here because this page needs a Timer that starts
+/// as soon as the page opens. After 3 seconds the app moves to the Login page.
+/// Layout: Scaffold -> Container (purple gradient) -> Column
+/// (logo, app name, tagline, loading circle).
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -10,6 +24,7 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  // This timer fires only once, after the splash delay.
   late Timer _navigationTimer;
 
   @override
@@ -26,10 +41,11 @@ class _SplashScreenState extends State<SplashScreen> {
     // Use pushReplacement so user cannot return to splash screen
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => const login_user()),
+      MaterialPageRoute(builder: (context) => const LoginPage()),
     );
   }
 
+  // Cancel the timer so it cannot fire after the page is closed.
   @override
   void dispose() {
     _navigationTimer.cancel();
@@ -39,9 +55,11 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Scaffold = the whole splash page.
       body: Container(
         width: double.infinity,
         height: double.infinity,
+        // Container gives the full-screen purple gradient background.
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -53,7 +71,9 @@ class _SplashScreenState extends State<SplashScreen> {
             ],
           ),
         ),
+        // SafeArea = keeps the logo away from the notch / status bar.
         child: SafeArea(
+          // Column -> vertical stack: logo, app name, tagline, loading circle.
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -62,10 +82,10 @@ class _SplashScreenState extends State<SplashScreen> {
                 width: 120,
                 height: 120,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
+                  color: Colors.white.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(30),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.3),
+                    color: Colors.white.withValues(alpha: 0.3),
                     width: 2,
                   ),
                 ),
@@ -96,7 +116,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w400,
-                  color: Colors.white.withOpacity(0.85),
+                  color: Colors.white.withValues(alpha: 0.85),
                   letterSpacing: 0.5,
                 ),
               ),
@@ -106,9 +126,10 @@ class _SplashScreenState extends State<SplashScreen> {
               SizedBox(
                 width: 50,
                 height: 50,
+                // CircularProgressIndicator = spins while the 3-second timer runs.
                 child: CircularProgressIndicator(
                   valueColor: AlwaysStoppedAnimation(
-                    Colors.white.withOpacity(0.7),
+                    Colors.white.withValues(alpha: 0.7),
                   ),
                   strokeWidth: 3,
                 ),

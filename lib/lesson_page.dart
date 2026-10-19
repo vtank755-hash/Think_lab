@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'course.dart';
 import 'purchases.dart';
 import 'progress.dart';
-import 'quiz.dart';
 import 'quiz_page.dart';
 import 'quiz_results.dart';
 import 'session.dart';
+import 'widgets/completion_card.dart';
 import 'widgets/lesson_video_player.dart';
 
 const _heading = Color(0xFF2B2356);
@@ -31,8 +31,26 @@ const _green = Color(0xFF25A55F);
 /// * marks the lesson completed when the video finishes;
 /// * Previous / Next move through the module and on into the next module.
 // =====================================================
+// UI STRUCTURE (SCREEN VIEW)
+//  1. Back button              -> GestureDetector + Icon (tap -> previous page)
+//  2. Module header            -> Text 'Module N' + module title
+//  3. Lesson counter           -> Text 'Lesson 1 / 5'
+//  4. Locked card              -> Container + 'View course' button (not bought)
+//  5. Video player             -> LessonVideoPlayer (tap -> fullscreen)
+//  6. Lesson title + duration  -> Text + Row with clock Icon
+//  7. About this lesson        -> Text
+//  8. What you'll learn        -> Container + check Icon rows
+//  9. Example code             -> Container + Text (monospace)
+// 10. Notes                    -> Container + Text
+// 11. Mark as completed        -> GestureDetector + Text (tap -> toggle)
+// 12. Completion card          -> CompletionCard (all lessons done)
+// 13. Previous / Next bar      -> OutlinedButton + FilledButton (-> lesson / Take Quiz)
+// =====================================================
 // LESSON PAGE (VIDEO LEARNING PAGE)
+// StatefulWidget is used here because the page rebuilds when the lesson is
+// marked completed, the video goes fullscreen, or a quiz attempt is saved.
 // Shows the lesson video, notes and Previous/Next navigation.
+// Layout: Scaffold -> Column (header + scrollable lesson content).
 // =====================================================
 class LessonPage extends StatefulWidget {
   final String courseId;
@@ -56,10 +74,13 @@ class _LessonPageState extends State<LessonPage> {
   late final Lesson _lesson;
   late final int _moduleIndex;
   late final int _lessonIndex;
+  // Video player controller for THIS lesson's own video.
   late final LessonVideoController _player;
   late final bool _unlocked;
 
+  // True while the video is shown in fullscreen.
   bool _fullscreen = false;
+  // True once this lesson is marked completed.
   bool _completed = false;
   late final VoidCallback _quizListener;
 
@@ -101,6 +122,7 @@ class _LessonPageState extends State<LessonPage> {
     });
   }
 
+  // Remember the video position, so the user can resume later.
   void _rememberPosition() {
     if (!_unlocked) return;
     saveVideoPosition(widget.lessonId, _player.position);
@@ -167,16 +189,22 @@ class _LessonPageState extends State<LessonPage> {
         ? null
         : nextLesson(_course, _moduleIndex, _lessonIndex);
 
+    // Scaffold = the whole lesson page.
     return Scaffold(
       backgroundColor: const Color(0xFFF6F5FB),
+      // SafeArea = keeps lesson content away from the notch.
       body: SafeArea(
+        // Normal mode: header + scrollable content. Fullscreen mode: just video.
         child: _fullscreen
             ? _fullScreenView()
+            // Column = header on top, scrollable lesson body below.
             : Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _header(previous),
+                  // Expanded = fills remaining space with the scrolling list.
                   Expanded(
+                    // ListView = scrolls the lesson sections vertically.
                     child: ListView(
                       padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
                       children: [
@@ -204,7 +232,7 @@ class _LessonPageState extends State<LessonPage> {
                           _completionButton(),
                           if (next == null && _lessonsComplete) ...[
                             const SizedBox(height: 16),
-                            _completionBanner(),
+                            CompletionCard(course: _course),
                           ],
                           const SizedBox(height: 16),
                           _navigation(previous, next),
@@ -223,11 +251,14 @@ class _LessonPageState extends State<LessonPage> {
   Widget _header((int, int)? previous) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 14, 18, 6),
+      // Row = back button, module title, lesson counter.
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // GestureDetector = tap returns to the previous page.
           GestureDetector(
             onTap: () => Navigator.pop(context),
+            // Container = white circle behind the back arrow.
             child: Container(
               width: 42,
               height: 42,
@@ -235,6 +266,7 @@ class _LessonPageState extends State<LessonPage> {
                 color: Colors.white,
                 shape: BoxShape.circle,
               ),
+              // Icon = back arrow glyph.
               child: const Icon(
                 Icons.arrow_back_ios_new_rounded,
                 color: _heading,
@@ -243,7 +275,9 @@ class _LessonPageState extends State<LessonPage> {
             ),
           ),
           const SizedBox(width: 12),
+          // Expanded = title column fills the leftover width.
           Expanded(
+            // Column = module label above the module title.
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -269,6 +303,7 @@ class _LessonPageState extends State<LessonPage> {
               ],
             ),
           ),
+          // Container = white pill showing the lesson counter.
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
@@ -291,7 +326,9 @@ class _LessonPageState extends State<LessonPage> {
 
   // ------------------------------------------------------ locked state
 
+  // Shown when this course has not been purchased yet.
   Widget _lockedCard() {
+    // Container = white card shown for locked lessons.
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 30, 20, 30),
@@ -299,8 +336,10 @@ class _LessonPageState extends State<LessonPage> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
       ),
+      // Column = lock icon, message and view-course button.
       child: Column(
         children: [
+          // Container = purple circle behind the lock icon.
           Container(
             width: 76,
             height: 76,
@@ -308,6 +347,7 @@ class _LessonPageState extends State<LessonPage> {
               color: Color(0xFFEEE9FF),
               shape: BoxShape.circle,
             ),
+            // Icon = padlock glyph for the locked state.
             child: const Icon(
               Icons.lock_outline_rounded,
               color: _purple,
@@ -330,6 +370,7 @@ class _LessonPageState extends State<LessonPage> {
             style: TextStyle(color: _muted, fontSize: 13.5, height: 1.5),
           ),
           const SizedBox(height: 18),
+          // FilledButton = returns to the course details page.
           FilledButton(
             onPressed: () => Navigator.pop(context),
             style: FilledButton.styleFrom(
@@ -360,6 +401,7 @@ class _LessonPageState extends State<LessonPage> {
       borderRadius: BorderRadius.circular(20),
       child: ColoredBox(
         color: const Color(0xFF14102B),
+        // LessonVideoPlayer = plays this lesson's own video.
         child: LessonVideoPlayer(
           controller: _player,
           video: lessonVideo(_course, _moduleIndex, _lessonIndex),
@@ -370,15 +412,19 @@ class _LessonPageState extends State<LessonPage> {
     );
   }
 
+  // Fullscreen video: black screen with a close button on top.
   Widget _fullScreenView() {
     return Container(
       color: Colors.black,
+      // Column = top close bar above the fullscreen video.
       child: Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(6, 8, 6, 0),
+            // Row = close button, "Now playing" title, spacer.
             child: Row(
               children: [
+                // IconButton = exits fullscreen mode.
                 IconButton(
                   onPressed: () => setState(() => _fullscreen = false),
                   icon: const Icon(
@@ -387,6 +433,7 @@ class _LessonPageState extends State<LessonPage> {
                     size: 26,
                   ),
                 ),
+                // Expanded = centres the "Now playing" title.
                 const Expanded(
                   child: Text(
                     'Now playing',
@@ -402,10 +449,12 @@ class _LessonPageState extends State<LessonPage> {
               ],
             ),
           ),
+          // Expanded = fills the rest of the screen with video.
           Expanded(
             child: Center(
               child: AspectRatio(
                 aspectRatio: 16 / 9,
+                // LessonVideoPlayer = same player in fullscreen layout.
                 child: LessonVideoPlayer(
                   controller: _player,
                   video: lessonVideo(_course, _moduleIndex, _lessonIndex),
@@ -424,6 +473,7 @@ class _LessonPageState extends State<LessonPage> {
   // -------------------------------------------------- lesson content
 
   Widget _title() {
+    // Column = lesson title above the duration row.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -436,6 +486,7 @@ class _LessonPageState extends State<LessonPage> {
           ),
         ),
         const SizedBox(height: 8),
+        // Row = clock icon beside the lesson duration.
         Row(
           children: [
             const Icon(Icons.schedule_rounded, color: _muted, size: 15),
@@ -451,6 +502,7 @@ class _LessonPageState extends State<LessonPage> {
   }
 
   Widget _context() {
+    // Column = heading above the lesson description.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -467,6 +519,7 @@ class _LessonPageState extends State<LessonPage> {
   }
 
   Widget _points() {
+    // Container = white card listing the learning points.
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -474,6 +527,7 @@ class _LessonPageState extends State<LessonPage> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
       ),
+      // Column = heading plus each learning point.
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -482,6 +536,7 @@ class _LessonPageState extends State<LessonPage> {
           for (final point in _lesson.points)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
+              // Row = green check beside one learning point.
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -494,6 +549,7 @@ class _LessonPageState extends State<LessonPage> {
                     ),
                   ),
                   const SizedBox(width: 8),
+                  // Expanded = point text wraps in remaining width.
                   Expanded(
                     child: Text(
                       point,
@@ -513,11 +569,13 @@ class _LessonPageState extends State<LessonPage> {
   }
 
   Widget _code() {
+    // Column = heading above the example code box.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const LessonSectionHeading('Example'),
         const SizedBox(height: 8),
+        // Container = dark box showing the sample code.
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(16),
@@ -540,6 +598,7 @@ class _LessonPageState extends State<LessonPage> {
   }
 
   Widget _notes() {
+    // Container = light purple card holding the lesson notes.
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -547,6 +606,7 @@ class _LessonPageState extends State<LessonPage> {
         color: const Color(0xFFF4F1FF),
         borderRadius: BorderRadius.circular(18),
       ),
+      // Column = "Notes" heading above the note text.
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -567,10 +627,13 @@ class _LessonPageState extends State<LessonPage> {
 
   // ------------------------------------------------------ completion
 
+  // Tap to mark this lesson completed (or undo it again).
   Widget _completionButton() {
+    // GestureDetector = tap toggles the lesson's completed state.
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: _toggleCompleted,
+      // Container = pill button to mark the lesson completed.
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 13),
@@ -582,9 +645,11 @@ class _LessonPageState extends State<LessonPage> {
             width: 1.4,
           ),
         ),
+        // Row = status icon beside the completion label.
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            // Icon = check or empty circle for the state.
             Icon(
               _completed
                   ? Icons.check_circle_rounded
@@ -607,96 +672,6 @@ class _LessonPageState extends State<LessonPage> {
     );
   }
 
-  // ------------------------------------------- course completion + quiz
-
-  /// The course completion state shown on the LAST lesson of the LAST module:
-  ///
-  /// * lessons finished, quiz not passed → "Course learning completed" and a
-  ///   **Take Quiz** button (the quiz itself is never offered earlier);
-  /// * quiz passed (>= 75%) → "Course successfully completed".
-  Widget _completionBanner() {
-    final passed = isQuizPassed(_course.id);
-    final total = courseLessonCount(_course);
-    final attempt = latestQuizAttempt(_course.id);
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: passed ? const Color(0xFFE4F7EC) : const Color(0xFFEEE9FF),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                passed
-                    ? Icons.check_circle_rounded
-                    : Icons.emoji_events_rounded,
-                color: passed ? _green : _purple,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  passed
-                      ? 'Course successfully completed'
-                      : 'Course learning completed',
-                  style: const TextStyle(
-                    color: _heading,
-                    fontSize: 15.5,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            passed
-                ? 'All $total lessons completed · Quiz '
-                      '${attempt?.score}/${attempt?.total} '
-                      '(${attempt?.percentage}%) PASSED'
-                : 'All $total lessons completed. Take the final quiz — '
-                      '$quizQuestionCount questions, $quizPassingPercentage% '
-                      'or higher completes the course.',
-            style: TextStyle(
-              color: passed ? _green : _muted,
-              fontSize: 13,
-              height: 1.5,
-            ),
-          ),
-          if (!passed) ...[
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: _openQuiz,
-                style: FilledButton.styleFrom(
-                  backgroundColor: _purple,
-                  padding: const EdgeInsets.symmetric(vertical: 13),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                child: const Text(
-                  'Take Quiz',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
   // ------------------------------------------------ navigation
 
   Widget _navigation((int, int)? previous, (int, int)? next) {
@@ -706,9 +681,12 @@ class _LessonPageState extends State<LessonPage> {
     // course is learned and the final quiz has not been passed yet.
     final takeQuiz = isLast && _lessonsComplete && !isQuizPassed(_course.id);
 
+    // Row = previous and next buttons side by side.
     return Row(
       children: [
+        // Expanded = stretches Previous button to half width.
         Expanded(
+          // OutlinedButton = moves to the previous lesson.
           child: OutlinedButton(
             onPressed: canPrevious
                 ? () => _goTo(previous.$1, previous.$2)
@@ -732,7 +710,9 @@ class _LessonPageState extends State<LessonPage> {
           ),
         ),
         const SizedBox(width: 12),
+        // Expanded = stretches Next button to half width.
         Expanded(
+          // FilledButton = next lesson, finish, or open the quiz.
           child: FilledButton(
             onPressed: takeQuiz
                 ? _openQuiz

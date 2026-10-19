@@ -1,3 +1,7 @@
+// COURSE DATABASE OF THE APP (course.dart)
+// All courses, their modules and their lessons are stored here as plain data,
+// plus small helper functions at the bottom (ids, counts, durations).
+// This file has no UI - every page reads the courses from this list.
 import 'package:flutter/foundation.dart';
 
 import 'session.dart';

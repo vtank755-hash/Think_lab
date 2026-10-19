@@ -4,7 +4,7 @@ import 'cart.dart';
 import 'cart_page.dart';
 import 'course.dart';
 import 'course_details.dart';
-import 'Searches.dart';
+import 'searches.dart';
 import 'my_learning_page.dart';
 import 'open_lesson.dart';
 import 'progress.dart';
@@ -21,21 +21,44 @@ const _chipBg = Color(0xFFF1F0F8);
 const _star = Color(0xFFF5A623);
 
 // =====================================================
+// UI STRUCTURE (SCREEN VIEW)
+//  1. Header                -> Row + Image.asset + Text + cart badge + bell icon
+//  2. Search bar            -> GestureDetector + Container + Icon + Text, tap -> Search
+//  3. Offer banner          -> Container + Stack + Text "LIMITED OFFER"
+//  4. Categories header     -> Row + Text "Categories" + "See all", tap -> Categories
+//  5. Category chips        -> ListView + Container + Icon + Text, tap -> Categories
+//  6. Popular Courses       -> Row title + horizontal ListView of course cards
+//  7. Course card           -> Container + Image.asset + rating row, tap -> Course Details
+//  8. Continue Learning     -> ValueListenableBuilder + LinearProgressIndicator
+//  9. Recommended           -> Row title + course cards, tap -> Course Details
+// 10. Bottom navigation     -> NavBar tabs: Home, My Learning, Wishlist, Profile
+// =====================================================
 // HOME PAGE
 // Shows banner, categories, popular courses and the
 // course the user can continue learning.
 // =====================================================
-class index extends StatefulWidget {
-  const index({super.key});
+
+/// HOME SHELL PAGE (StatefulWidget) - class HomePage
+/// StatefulWidget is used here because this page is the main shell of the
+/// app: it holds the bottom navigation, so the body rebuilds on every tab
+/// tap. The cart icon also listens to the cart, so its badge count updates
+/// by itself.
+/// Tabs: 0 = Home, 1 = My Learning, 2 = Wishlist, 3 = Profile (placeholder).
+/// Layout: Scaffold -> SafeArea -> tab body + NavBar at the bottom.
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
 
   @override
-  State<index> createState() => _indexState();
+  State<HomePage> createState() => _HomePageState();
 }
 
-class _indexState extends State<index> {
+class _HomePageState extends State<HomePage> {
+  // Which bottom tab is open: 0 = Home, 1 = Learning, 2 = Wishlist, 3 = Profile.
   int _tab = 0;
-  int _cat = 1;
+  // Which category icon is highlighted (purple) in the category row.
+  int _cat = 1;g
 
+  // The 5 category icons shown in the horizontal list on the Home tab.
   final _cats = const [
     {'name': 'Dev', 'icon': Icons.code},
     {'name': 'Design', 'icon': Icons.layers_outlined},
@@ -48,7 +71,7 @@ class _indexState extends State<index> {
     // Search icon tapped -> Open the Search page.
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const Searches()),
+      MaterialPageRoute(builder: (context) => const SearchPage()),
     );
   }
 
@@ -63,6 +86,7 @@ class _indexState extends State<index> {
 
   @override
   Widget build(BuildContext context) {
+    // Scaffold -> SafeArea -> body of the open tab, NavBar pinned at the bottom.
     return Scaffold(
       backgroundColor: _pageBg,
       body: SafeArea(child: _body()),
@@ -86,9 +110,12 @@ class _indexState extends State<index> {
     return _otherTab();
   }
 
+  // The Home tab: one scrolling Column with all home sections inside it.
   Widget _home() {
+    // SingleChildScrollView = makes the whole Home tab scroll vertically.
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+      // Column = stacks every home section top to bottom.
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -98,6 +125,7 @@ class _indexState extends State<index> {
           const SizedBox(height: 18),
           _offerBanner(),
           const SizedBox(height: 22),
+          // Row = "Categories" title, spacer, then the "See all" link.
           Row(
             children: [
               const Text(
@@ -109,12 +137,15 @@ class _indexState extends State<index> {
                 ),
               ),
               const Spacer(),
+              // GestureDetector = makes "See all" tappable.
               GestureDetector(
                 onTap: () {
                   // Categories "See all" tapped -> Open Categories page.
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const categories()),
+                    MaterialPageRoute(
+                      builder: (context) => const CategoriesPage(),
+                    ),
                   );
                 },
                 child: const Padding(
@@ -142,6 +173,7 @@ class _indexState extends State<index> {
           const SizedBox(height: 14),
           _continueCard(courseById('c5')),
           const SizedBox(height: 22),
+          // GestureDetector = makes the whole "Recommended" header tappable.
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: _openSearches,
@@ -180,17 +212,19 @@ class _indexState extends State<index> {
     );
   }
 
+  // Top row: avatar, greeting, cart icon with live count, notification icon.
   Widget _header() {
     return Row(
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(28),
+          // Image.asset = the user's round profile photo.
           child: Image.asset(
             'assets/images/profile/avatar.jpg',
             width: 48,
             height: 48,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => Container(
+            errorBuilder: (_, _, _) => Container(
               width: 48,
               height: 48,
               color: _purple,
@@ -199,7 +233,9 @@ class _indexState extends State<index> {
           ),
         ),
         const SizedBox(width: 12),
+        // Expanded = greeting fills the free space between avatar and icons.
         const Expanded(
+          // Column = "Good morning," line above the user's name.
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -231,8 +267,10 @@ class _indexState extends State<index> {
                 context,
                 MaterialPageRoute(builder: (_) => const CartPage()),
               ),
+              // Stack = red count badge overlaps the cart icon.
               child: Stack(
                 children: [
+                  // Container = white circle holding the cart icon.
                   Container(
                     width: 44,
                     height: 44,
@@ -252,9 +290,11 @@ class _indexState extends State<index> {
                     ),
                   ),
                   if (ids.isNotEmpty)
+                    // Positioned = pins the count badge to the top-right.
                     Positioned(
                       right: 2,
                       top: 2,
+                      // Container = red circle behind the item count.
                       child: Container(
                         padding: const EdgeInsets.all(5),
                         decoration: const BoxDecoration(
@@ -277,8 +317,10 @@ class _indexState extends State<index> {
           },
         ),
         const SizedBox(width: 10),
+        // Stack = unread dot overlaps the bell icon.
         Stack(
           children: [
+            // Container = white circle holding the bell icon.
             Container(
               width: 44,
               height: 44,
@@ -297,9 +339,11 @@ class _indexState extends State<index> {
                 color: _purple,
               ),
             ),
+            // Positioned = pins the red dot onto the bell.
             Positioned(
               right: 11,
               top: 11,
+              // Container = tiny red "new notification" dot.
               child: Container(
                 width: 8,
                 height: 8,
@@ -315,13 +359,16 @@ class _indexState extends State<index> {
     );
   }
 
+  // Search bar row. Tapping it opens the Searches page.
   Widget _searchRow() {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: _openSearches,
       child: Row(
         children: [
+          // Expanded = search box takes the free width.
           Expanded(
+            // Container = white rounded search field box.
             child: Container(
               height: 48,
               padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -329,6 +376,7 @@ class _indexState extends State<index> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
               ),
+              // Row = search icon + placeholder text side by side.
               child: const Row(
                 children: [
                   Icon(Icons.search, color: _grey),
@@ -342,6 +390,7 @@ class _indexState extends State<index> {
             ),
           ),
           const SizedBox(width: 10),
+          // Container = purple filter (tune) button.
           Container(
             width: 48,
             height: 48,
@@ -356,6 +405,7 @@ class _indexState extends State<index> {
     );
   }
 
+  // Purple "LIMITED OFFER" banner. A Stack puts decorative circles behind the text.
   Widget _offerBanner() {
     return Container(
       width: double.infinity,
@@ -370,9 +420,11 @@ class _indexState extends State<index> {
       ),
       child: Stack(
         children: [
+          // Positioned = decorative circle behind the banner text.
           Positioned(
             right: -10,
             top: -20,
+            // Container = translucent white circle decoration.
             child: Container(
               width: 110,
               height: 110,
@@ -394,9 +446,11 @@ class _indexState extends State<index> {
               ),
             ),
           ),
+          // Column = offer badge, headline and call to action.
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Container = pill behind the "LIMITED OFFER" text.
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
@@ -442,6 +496,7 @@ class _indexState extends State<index> {
     );
   }
 
+  // Reusable "section title + See all" row, used by every home section.
   Widget _rowTitle(String title, {VoidCallback? onSeeAll}) {
     return Row(
       children: [
@@ -473,15 +528,17 @@ class _indexState extends State<index> {
     );
   }
 
+  // Horizontal ListView of category icons; tapping one opens the Categories page.
   Widget _categories() {
     return SizedBox(
       height: 86,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: _cats.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 16),
+        separatorBuilder: (_, _) => const SizedBox(width: 16),
         itemBuilder: (context, i) {
           final selected = i == _cat;
+          // GestureDetector = makes one category chip tappable.
           return GestureDetector(
             onTap: () {
               setState(() {
@@ -490,11 +547,13 @@ class _indexState extends State<index> {
               // Category icon tapped -> Open the course list of that category.
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const categories()),
+                MaterialPageRoute(builder: (context) => const CategoriesPage()),
               );
             },
+            // Column = icon circle stacked above the category name.
             child: Column(
               children: [
+                // Container = circular background for the category icon.
                 Container(
                   width: 52,
                   height: 52,
@@ -511,6 +570,7 @@ class _indexState extends State<index> {
                           ]
                         : null,
                   ),
+                  // Icon = the category symbol (white when selected).
                   child: Icon(
                     _cats[i]['icon'] as IconData,
                     color: selected ? Colors.white : _purple,
@@ -534,6 +594,7 @@ class _indexState extends State<index> {
     );
   }
 
+  // Horizontal ListView with the two Popular Courses cards.
   Widget _popular() {
     return SizedBox(
       height: 230,
@@ -554,33 +615,39 @@ class _indexState extends State<index> {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () => _openCourse(course),
+      // Container = white rounded Popular Course card.
       child: Container(
         width: 220,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
         ),
+        // Column = course image stacked above the course details.
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Stack = category badge overlaps the course image.
             Stack(
               children: [
                 ClipRRect(
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(20),
                   ),
+                  // Image.asset = the course cover photo.
                   child: Image.asset(
                     course.image,
                     height: 112,
                     width: 220,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) =>
+                    errorBuilder: (_, _, _) =>
                         Container(height: 112, color: const Color(0xFFE8E6F5)),
                   ),
                 ),
+                // Positioned = pins the category badge top-left on the image.
                 Positioned(
                   left: 10,
                   top: 10,
+                  // Container = small white category badge.
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,
@@ -604,6 +671,7 @@ class _indexState extends State<index> {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+              // Column = title, instructor, then the rating/price row.
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -624,6 +692,7 @@ class _indexState extends State<index> {
                     style: const TextStyle(fontSize: 11, color: _grey),
                   ),
                   const SizedBox(height: 8),
+                  // Row = star rating + students, then price on the right.
                   Row(
                     children: [
                       const Icon(Icons.star_rounded, size: 16, color: _star),
@@ -681,14 +750,17 @@ class _indexState extends State<index> {
             return GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () => _continueCourse(course),
+              // Container = white rounded Continue Learning card.
               child: Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(22),
                 ),
+                // Row = course icon, progress details, then play button.
                 child: Row(
                   children: [
+                    // Container = rounded square holding the course icon.
                     Container(
                       width: 46,
                       height: 46,
@@ -702,7 +774,9 @@ class _indexState extends State<index> {
                       ),
                     ),
                     const SizedBox(width: 12),
+                    // Expanded = progress details take the middle space.
                     Expanded(
+                      // Column = title, resume label, then progress bar.
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -724,6 +798,7 @@ class _indexState extends State<index> {
                             style: const TextStyle(fontSize: 11, color: _grey),
                           ),
                           const SizedBox(height: 10),
+                          // Row = "Course Progress" label with the percent.
                           Row(
                             children: [
                               const Expanded(
@@ -745,6 +820,7 @@ class _indexState extends State<index> {
                           const SizedBox(height: 6),
                           ClipRRect(
                             borderRadius: BorderRadius.circular(6),
+                            // LinearProgressIndicator = lessons completed bar.
                             child: LinearProgressIndicator(
                               value: total == 0 ? 0 : completed / total,
                               minHeight: 6,
@@ -756,6 +832,7 @@ class _indexState extends State<index> {
                       ),
                     ),
                     const SizedBox(width: 10),
+                    // Container = round purple play / resume button.
                     Container(
                       width: 40,
                       height: 40,
@@ -801,30 +878,36 @@ class _indexState extends State<index> {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () => _openCourse(course),
+      // Container = white rounded recommended-course card.
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
         ),
+        // Row = thumbnail, details, then the favourite heart.
         child: Row(
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(14),
+              // Image.asset = the small course thumbnail.
               child: Image.asset(
                 course.image,
                 width: 72,
                 height: 72,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) =>
+                errorBuilder: (_, _, _) =>
                     Container(width: 72, height: 72, color: _chipBg),
               ),
             ),
             const SizedBox(width: 12),
+            // Expanded = course text takes the middle of the card.
             Expanded(
+              // Column = category tag, title, instructor, rating row.
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Container = light purple category tag background.
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,
@@ -860,6 +943,7 @@ class _indexState extends State<index> {
                     style: const TextStyle(fontSize: 11, color: _grey),
                   ),
                   const SizedBox(height: 4),
+                  // Row = star rating on the left, price on the right.
                   Row(
                     children: [
                       const Icon(Icons.star_rounded, size: 14, color: _star),
@@ -894,10 +978,12 @@ class _indexState extends State<index> {
 
   /// Favourite heart shared with the details page and the search results.
   Widget _favoriteIcon(Course course) {
+    // ValueListenableBuilder = redraws the heart when favourites change.
     return ValueListenableBuilder<Set<String>>(
       valueListenable: favoriteIds,
       builder: (context, ids, _) {
         final liked = ids.contains(course.id);
+        // GestureDetector = tapping the heart toggles the favourite.
         return GestureDetector(
           onTap: () => toggleFavorite(course),
           child: Padding(

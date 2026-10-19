@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:think_lab/Searches.dart';
+import 'package:think_lab/searches.dart';
 import 'package:think_lab/cart.dart';
 import 'package:think_lab/cart_page.dart';
 import 'package:think_lab/course.dart';
@@ -16,7 +16,7 @@ void main() {
   testWidgets('"Add to Cart" adds exactly the selected course', (tester) async {
     ignoreOverflowErrors();
 
-    await tester.pumpWidget(const MaterialApp(home: Searches()));
+    await tester.pumpWidget(const MaterialApp(home: SearchPage()));
     await tester.pump(const Duration(seconds: 1));
 
     await tester.enterText(find.byType(TextField), 'Python Programming');
@@ -101,7 +101,7 @@ void main() {
   testWidgets('Home header cart icon opens the cart', (tester) async {
     ignoreOverflowErrors();
 
-    await tester.pumpWidget(const MaterialApp(home: index()));
+    await tester.pumpWidget(const MaterialApp(home: HomePage()));
     await tester.pump(const Duration(seconds: 1));
 
     await tester.tap(find.byIcon(Icons.shopping_bag_outlined));

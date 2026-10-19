@@ -33,11 +33,11 @@ Future<void> revealAndTap(WidgetTester tester, Finder finder) async {
 /// Starts on the home screen and pushes the Categories page.
 Future<void> openCategories(WidgetTester tester) async {
   ignoreOverflowErrors();
-  await tester.pumpWidget(const MaterialApp(home: index()));
+  await tester.pumpWidget(const MaterialApp(home: HomePage()));
   await tester.pump(const Duration(seconds: 1));
 
   await revealAndTap(tester, find.text('See all').first);
-  expect(find.byType(categories), findsOneWidget);
+  expect(find.byType(CategoriesPage), findsOneWidget);
 }
 
 /// Asserts that every course of the open category list is on screen and that
@@ -118,7 +118,7 @@ void main() {
     await tester.tap(find.byIcon(Icons.arrow_back_ios_new_rounded));
     await tester.pumpAndSettle();
     expect(find.byType(CategoryCoursesPage), findsNothing);
-    expect(find.byType(categories), findsOneWidget);
+    expect(find.byType(CategoriesPage), findsOneWidget);
   });
 
   testWidgets('A category card opens the exact course details and price', (
@@ -151,7 +151,7 @@ void main() {
 
     for (final name in categoryNames) {
       // Back on the categories grid (first iteration: home -> See all).
-      if (find.byType(categories).evaluate().isEmpty) {
+      if (find.byType(CategoriesPage).evaluate().isEmpty) {
         await openCategories(tester);
       }
 
@@ -175,7 +175,7 @@ void main() {
 
       await tester.tap(find.byIcon(Icons.arrow_back_ios_new_rounded));
       await tester.pumpAndSettle();
-      expect(find.byType(categories), findsOneWidget);
+      expect(find.byType(CategoriesPage), findsOneWidget);
     }
   });
 

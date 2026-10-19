@@ -27,7 +27,7 @@ void main() {
 
   Future<void> openWishlist(WidgetTester tester) async {
     ignoreOverflowErrors();
-    await tester.pumpWidget(const MaterialApp(home: index()));
+    await tester.pumpWidget(const MaterialApp(home: HomePage()));
     await tester.pump(const Duration(seconds: 1));
     await tester.tap(find.text('Wishlist'));
     await tester.pumpAndSettle();
@@ -168,7 +168,7 @@ void main() {
     tester,
   ) async {
     ignoreOverflowErrors();
-    await tester.pumpWidget(const MaterialApp(home: login_user()));
+    await tester.pumpWidget(const MaterialApp(home: LoginPage()));
     await tester.pumpAndSettle();
 
     await tester.enterText(
@@ -183,7 +183,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(currentUser.value, 'usera@learnhub.app');
-    expect(find.byType(index), findsOneWidget);
+    expect(find.byType(HomePage), findsOneWidget);
   });
 
   testWidgets('Wishlist → cart → Pay Now → UPI unlocks for this user', (
@@ -245,7 +245,7 @@ void main() {
     await tester.tap(find.text('Start Learning'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(index), findsOneWidget);
+    expect(find.byType(HomePage), findsOneWidget);
     expect(find.byType(WishlistPage), findsOneWidget);
     expect(find.text('Start Learning'), findsNWidgets(2));
     expect(find.text('Add to Cart'), findsNothing);

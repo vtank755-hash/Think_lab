@@ -33,8 +33,27 @@ ValueKey<String> quizOptionKey(int index) => ValueKey('quiz-option-$index');
 ///   the result screen offers `Retry Quiz` (attempt restarted from question 1);
 /// * every attempt is stored per user + course in `quiz_results.dart`.
 // =====================================================
-// COURSE QUIZ PAGE
+// UI STRUCTURE (SCREEN VIEW)
+//  1. Back button              -> GestureDetector + Icon (tap -> previous page)
+//  2. Page title               -> Text 'Module Quiz'
+//  3. Question counter         -> Text 'Question 1 of 20'
+//  4. Progress percent         -> Text '5%'
+//  5. Progress bar             -> LinearProgressIndicator
+//  6. Question card            -> Container (topic chip + question Text)
+//  7. Answer options A-D       -> GestureDetector options (tap -> select)
+//  8. Previous button          -> OutlinedButton (disabled on question 1)
+//  9. Next / Submit button     -> FilledButton (tap -> next / calculate score)
+// 10. Result icon              -> Icon check / close
+// 11. Result title             -> Text 'Quiz Completed' / 'Quiz Not Passed'
+// 12. Score card               -> Rows (Score / Percentage / passing score)
+// 13. Result pill              -> Text 'PASSED' / 'NOT PASSED'
+// 14. Retry / Continue         -> FilledButton (tap -> Retry Quiz / back)
+// =====================================================
+// COURSE QUIZ PAGE (StatefulWidget)
+// StatefulWidget is used here because the screen rebuilds on every answer
+// tap and every Previous / Next move.
 // Shows 20 questions for the selected course.
+// Layout: Scaffold -> Column (header + progress bar + question + buttons).
 // =====================================================
 class QuizPage extends StatefulWidget {
   /// The course whose quiz should be loaded.
@@ -47,10 +66,15 @@ class QuizPage extends StatefulWidget {
 }
 
 class _QuizPageState extends State<QuizPage> {
+  // The quiz of the selected course (null when that course has no quiz).
   CourseQuiz? _quiz;
+  // One saved answer per question: option index, or null if not answered yet.
   late List<int?> _answers;
+  // Index of the question on screen right now (0-based).
   int _index = 0;
+  // Filled after Submit — the saved attempt of this user.
   QuizAttempt? _result;
+  // Scrolls the question list back to the top on every question change.
   final ScrollController _scroll = ScrollController();
 
   @override
@@ -76,11 +100,13 @@ class _QuizPageState extends State<QuizPage> {
 
   // ------------------------------------------------------------- actions
 
+  // Show question [index] and scroll back to the top.
   void _goTo(int index) {
     setState(() => _index = index);
     if (_scroll.hasClients) _scroll.jumpTo(0);
   }
 
+  // Save the tapped option for the current question.
   void _select(int optionIndex) {
     setState(() => _answers[_index] = optionIndex);
   }
@@ -120,13 +146,17 @@ class _QuizPageState extends State<QuizPage> {
 
   /// Course without quiz data — never another course's questions.
   Widget _missing() {
+    // Scaffold = the "no quiz yet" fallback page.
     return Scaffold(
       backgroundColor: _pageBg,
+      // SafeArea = keeps the message away from the notch.
       body: SafeArea(
+        // Column = header above the missing-quiz message.
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _header(),
+            // Expanded = centres the message in the empty space.
             const Expanded(
               child: Center(
                 child: Padding(
@@ -148,10 +178,13 @@ class _QuizPageState extends State<QuizPage> {
   Widget _header() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 14, 18, 6),
+      // Row = back button beside the page title.
       child: Row(
         children: [
+          // GestureDetector = tap returns to the previous page.
           GestureDetector(
             onTap: () => Navigator.pop(context),
+            // Container = white circle behind the back arrow.
             child: Container(
               width: 42,
               height: 42,
@@ -159,6 +192,7 @@ class _QuizPageState extends State<QuizPage> {
                 color: Colors.white,
                 shape: BoxShape.circle,
               ),
+              // Icon = back arrow glyph.
               child: const Icon(
                 Icons.arrow_back_ios_new_rounded,
                 color: _heading,
@@ -167,6 +201,7 @@ class _QuizPageState extends State<QuizPage> {
             ),
           ),
           const SizedBox(width: 12),
+          // Expanded = page title fills the remaining width.
           const Expanded(
             child: Text(
               'Module Quiz',
@@ -188,15 +223,18 @@ class _QuizPageState extends State<QuizPage> {
     final quiz = _quiz!;
     final question = quiz.questions[_index];
 
+    // Scaffold = the main quiz screen.
     return Scaffold(
       backgroundColor: _pageBg,
       body: SafeArea(
+        // Column = header, progress bar, question list, buttons.
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _header(),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+              // Row = question counter left, percent right.
               child: Row(
                 children: [
                   Text(
@@ -224,6 +262,7 @@ class _QuizPageState extends State<QuizPage> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
+                // LinearProgressIndicator = purple quiz progress bar.
                 child: LinearProgressIndicator(
                   value: _total == 0 ? 0 : (_index + 1) / _total,
                   minHeight: 8,
@@ -232,7 +271,9 @@ class _QuizPageState extends State<QuizPage> {
                 ),
               ),
             ),
+            // Expanded = scrollable area between header and buttons.
             Expanded(
+              // ListView = scrolls the question card and options.
               child: ListView(
                 controller: _scroll,
                 padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
@@ -252,6 +293,7 @@ class _QuizPageState extends State<QuizPage> {
   }
 
   Widget _questionCard(String topic, String text) {
+    // Container = white card holding the question.
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
@@ -266,9 +308,11 @@ class _QuizPageState extends State<QuizPage> {
           ),
         ],
       ),
+      // Column = topic chip above the question text.
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Container = small topic chip label.
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
@@ -306,10 +350,12 @@ class _QuizPageState extends State<QuizPage> {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
+      // GestureDetector = tap selects this answer option.
       child: GestureDetector(
         key: quizOptionKey(optionIndex),
         behavior: HitTestBehavior.opaque,
         onTap: () => _select(optionIndex),
+        // Container = answer row that highlights when selected.
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           decoration: BoxDecoration(
@@ -320,8 +366,10 @@ class _QuizPageState extends State<QuizPage> {
               width: selected ? 1.6 : 1.3,
             ),
           ),
+          // Row = letter circle beside the answer text.
           child: Row(
             children: [
+              // Container = A/B/C/D letter circle.
               Container(
                 width: 30,
                 height: 30,
@@ -344,6 +392,7 @@ class _QuizPageState extends State<QuizPage> {
                 ),
               ),
               const SizedBox(width: 12),
+              // Expanded = answer text fills the remaining width.
               Expanded(
                 child: Text(
                   label,
@@ -365,9 +414,12 @@ class _QuizPageState extends State<QuizPage> {
   Widget _buttons() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+      // Row = Previous button left, Next/Submit button right.
       child: Row(
         children: [
+          // Expanded = stretches Previous button to half width.
           Expanded(
+            // OutlinedButton = moves to the previous question.
             child: OutlinedButton(
               onPressed: _index == 0 ? null : () => _goTo(_index - 1),
               style: OutlinedButton.styleFrom(
@@ -385,7 +437,9 @@ class _QuizPageState extends State<QuizPage> {
             ),
           ),
           const SizedBox(width: 12),
+          // Expanded = stretches Next/Submit button to half width.
           Expanded(
+            // FilledButton = next question, or submits the quiz.
             child: FilledButton(
               onPressed: _isLast ? _submit : () => _goTo(_index + 1),
               style: FilledButton.styleFrom(
@@ -412,19 +466,24 @@ class _QuizPageState extends State<QuizPage> {
 
   // ------------------------------------------------------------ results
 
+  // Result screen: pass or fail, score and percentage.
+  // Correct answers are never shown — only the score is.
   Widget _resultView() {
     final result = _result!;
     final passed = result.passed;
 
+    // Scaffold = the quiz result screen.
     return Scaffold(
       backgroundColor: _pageBg,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(24, 14, 24, 24),
+          // Column = result icon, score card, retry button.
           child: Column(
             children: [
               _header(),
               const SizedBox(height: 24),
+              // Container = big pass or fail circle badge.
               Container(
                 width: 92,
                 height: 92,
@@ -434,6 +493,7 @@ class _QuizPageState extends State<QuizPage> {
                       : const Color(0xFFFDECEA),
                   shape: BoxShape.circle,
                 ),
+                // Icon = check when passed, cross when failed.
                 child: Icon(
                   passed ? Icons.check_rounded : Icons.close_rounded,
                   color: passed ? _green : _red,
@@ -462,6 +522,7 @@ class _QuizPageState extends State<QuizPage> {
                 ),
               ),
               const SizedBox(height: 22),
+              // Container = white card with the score details.
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
@@ -476,6 +537,7 @@ class _QuizPageState extends State<QuizPage> {
                     ),
                   ],
                 ),
+                // Column = score, percentage and passing rows.
                 child: Column(
                   children: [
                     _resultRow(
@@ -483,12 +545,14 @@ class _QuizPageState extends State<QuizPage> {
                       '${result.score} / ${result.total}',
                       emphasize: true,
                     ),
+                    // Divider = separates score from percentage.
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 14),
                       child: Divider(height: 1, color: _border),
                     ),
                     _resultRow('Percentage', '${result.percentage}%'),
                     if (!passed) ...[
+                      // Divider = separates percentage from passing score.
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 14),
                         child: Divider(height: 1, color: _border),
@@ -502,6 +566,7 @@ class _QuizPageState extends State<QuizPage> {
                 ),
               ),
               const SizedBox(height: 16),
+              // Container = PASSED / NOT PASSED pill badge.
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -526,6 +591,7 @@ class _QuizPageState extends State<QuizPage> {
               const SizedBox(height: 26),
               SizedBox(
                 width: double.infinity,
+                // FilledButton = continue if passed, retry if failed.
                 child: FilledButton(
                   // Passed (75%+) -> Go back to the course.
                   // Failed (< 75%) -> Restart the quiz from question 1.
@@ -555,8 +621,10 @@ class _QuizPageState extends State<QuizPage> {
   }
 
   Widget _resultRow(String label, String value, {bool emphasize = false}) {
+    // Row = label on the left, value on the right.
     return Row(
       children: [
+        // Expanded = label stretches, the value stays right.
         Expanded(
           child: Text(
             label,

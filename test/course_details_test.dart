@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:think_lab/Searches.dart';
+import 'package:think_lab/searches.dart';
 import 'package:think_lab/course_details.dart';
 import 'package:think_lab/index.dart';
 
@@ -13,7 +13,7 @@ void main() {
   ) async {
     ignoreOverflowErrors();
 
-    await tester.pumpWidget(const MaterialApp(home: Searches()));
+    await tester.pumpWidget(const MaterialApp(home: SearchPage()));
     await tester.pump(const Duration(seconds: 1));
 
     await tester.enterText(find.byType(TextField), 'python');
@@ -37,7 +37,7 @@ void main() {
   testWidgets('Details page shows the selected course content', (tester) async {
     ignoreOverflowErrors();
 
-    await tester.pumpWidget(const MaterialApp(home: Searches()));
+    await tester.pumpWidget(const MaterialApp(home: SearchPage()));
     await tester.pump(const Duration(seconds: 1));
 
     await tester.enterText(find.byType(TextField), 'Complete Web');
@@ -62,13 +62,13 @@ void main() {
     await tester.tap(find.byIcon(Icons.swap_horiz));
     await tester.pumpAndSettle();
     expect(find.byType(CourseDetails), findsNothing);
-    expect(find.byType(Searches), findsOneWidget);
+    expect(find.byType(SearchPage), findsOneWidget);
   });
 
   testWidgets('Every home course card opens the details page', (tester) async {
     ignoreOverflowErrors();
 
-    await tester.pumpWidget(const MaterialApp(home: index()));
+    await tester.pumpWidget(const MaterialApp(home: HomePage()));
     await tester.pump(const Duration(seconds: 1));
 
     for (final title in [
@@ -100,7 +100,7 @@ void main() {
   ) async {
     ignoreOverflowErrors();
 
-    await tester.pumpWidget(const MaterialApp(home: Searches()));
+    await tester.pumpWidget(const MaterialApp(home: SearchPage()));
     await tester.pump(const Duration(seconds: 1));
 
     const cases = <(String, String, String)>[
@@ -142,7 +142,7 @@ void main() {
   ) async {
     ignoreOverflowErrors();
 
-    await tester.pumpWidget(const MaterialApp(home: Searches()));
+    await tester.pumpWidget(const MaterialApp(home: SearchPage()));
     await tester.pump(const Duration(seconds: 1));
 
     // c1 starts as a favourite in the course data.

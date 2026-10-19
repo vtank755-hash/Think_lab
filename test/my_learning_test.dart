@@ -40,7 +40,7 @@ void main() {
   testWidgets('Learning tab opens the My Learning screen', (tester) async {
     ignoreOverflowErrors();
 
-    await tester.pumpWidget(const MaterialApp(home: index()));
+    await tester.pumpWidget(const MaterialApp(home: HomePage()));
     await tester.pump(const Duration(seconds: 1));
     await openLearningTab(tester);
 
@@ -81,7 +81,7 @@ void main() {
     // The user stopped at module 1, lesson 5.
     setResumePoint(python, 'c5-module-1', 'c5-module-1-lesson-5');
 
-    await tester.pumpWidget(const MaterialApp(home: index()));
+    await tester.pumpWidget(const MaterialApp(home: HomePage()));
     await tester.pump(const Duration(seconds: 1));
     await openLearningTab(tester);
 
@@ -93,7 +93,13 @@ void main() {
     expect(find.text('Continue'), findsOneWidget);
     expect(find.text('Completed · 100%'), findsNothing);
 
+    // The card also lists the curriculum, exactly like Course Details.
+    expect(find.text('Curriculum'), findsOneWidget);
+    expect(find.text('1. Getting Started with Python'), findsOneWidget);
+
     // Continue → straight into the remembered lesson.
+    await tester.ensureVisible(find.text('Continue'));
+    await tester.pump();
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
 
@@ -110,7 +116,7 @@ void main() {
     unlockCourses([python]);
     completeCourse(python);
 
-    await tester.pumpWidget(const MaterialApp(home: index()));
+    await tester.pumpWidget(const MaterialApp(home: HomePage()));
     await tester.pump(const Duration(seconds: 1));
     await openLearningTab(tester);
 
@@ -140,6 +146,8 @@ void main() {
     expect(find.text('View Certificate'), findsOneWidget);
     expect(find.text('Continue'), findsNothing);
 
+    await tester.ensureVisible(find.text('View Certificate'));
+    await tester.pump();
     await tester.tap(find.text('View Certificate'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
@@ -156,7 +164,7 @@ void main() {
     unlockCourses([python]);
     setResumePoint(python, 'c5-module-1', 'c5-module-1-lesson-1');
 
-    await tester.pumpWidget(const MaterialApp(home: index()));
+    await tester.pumpWidget(const MaterialApp(home: HomePage()));
     await tester.pump(const Duration(seconds: 1));
     await openLearningTab(tester);
 

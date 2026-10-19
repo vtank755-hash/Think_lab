@@ -4,7 +4,8 @@ import 'course.dart';
 import 'session.dart';
 
 // ---------------------------------------------------------------------------
-// Per-user learning progress: completion, resume point and video positions.
+// PROGRESS.DART - per-user learning progress:
+// completion, resume point and video positions.
 //
 // Everything is keyed by the SIGNED-IN USER id plus the lesson id, exactly
 // like the cart and the purchases — never one global flag:

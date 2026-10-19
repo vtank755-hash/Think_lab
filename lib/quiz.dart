@@ -1,7 +1,5 @@
 import 'package:flutter/foundation.dart';
 
-import 'course.dart';
-
 // -----------------------------------------------------------------------------
 // FINAL QUIZ — the user-side quiz data source.
 //
@@ -15,6 +13,11 @@ import 'course.dart';
 // Every course owns its OWN quiz (`c5` → `c5_final_quiz` with 20 Python
 // questions, `c1` → `c1_final_quiz` with 20 web-development questions), so
 // questions can never leak between courses.
+//
+// Rules: the quiz belongs to the selected course and is loaded by course id.
+// It is only offered after EVERY lesson of the course is completed.
+// 75% or higher passes and completes the course; below 75% shows Retry.
+// Correct answers are never shown before submitting.
 // -----------------------------------------------------------------------------
 
 /// One multiple-choice question of a course quiz.
@@ -864,14 +867,3 @@ CourseQuiz? quizForCourse(String courseId) => _quizByCourse[courseId];
 /// Every quiz in the app (used by data-integrity tests).
 @visibleForTesting
 List<CourseQuiz> get allQuizzes => _quizByCourse.values.toList();
-
-/// The quiz of a course, throwing when it is missing — handy in screens that
-/// already checked with [quizForCourse].
-CourseQuiz quizForCourseOrThrow(String courseId) {
-  final quiz = _quizByCourse[courseId];
-  if (quiz == null) throw StateError('No quiz for course $courseId');
-  return quiz;
-}
-
-/// Convenience: the quiz of the course object itself.
-CourseQuiz? quizOf(Course course) => quizForCourse(course.id);

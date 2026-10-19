@@ -128,6 +128,8 @@ enum CourseCompletionState {
   completed,
 }
 
+/// Which stage of the two-stage rule this course is in right now
+/// (used by the completion card and the lesson banner).
 CourseCompletionState completionStateOf(Course course, {String? userId}) {
   if (!isCourseLessonsComplete(course, userId: userId)) {
     return CourseCompletionState.inProgress;

@@ -21,6 +21,15 @@ const _star = Color(0xFFF5A623);
 /// is hardcoded — and every card opens the dynamic [CourseDetails] page with
 /// that exact course (including its own price).
 // =====================================================
+// UI STRUCTURE (SCREEN VIEW)
+//  1. Back button           -> GestureDetector + Container + Icon, tap -> back
+//  2. Category title        -> Text + Container chip with course count
+//  3. Filter button         -> GestureDetector + Container + Icon, tap -> show search field
+//  4. Search field          -> TextField + controller, hint "Search in ..."
+//  5. Course list           -> ListView.separated of course cards
+//  6. Empty state           -> Icon + Text "No courses yet"
+//  7. Course card           -> Container + Image.asset + rating row, tap -> Course Details
+// =====================================================
 // CATEGORY COURSES PAGE
 // Shows every course that belongs to one category.
 // =====================================================
@@ -34,7 +43,9 @@ class CategoryCoursesPage extends StatefulWidget {
 }
 
 class _CategoryCoursesPageState extends State<CategoryCoursesPage> {
+  // TextEditingController stores the filter text typed by the user.
   final _search = TextEditingController();
+  // true when the small search field should be visible.
   bool _showSearch = false;
 
   /// The category's courses, optionally narrowed down by the filter field.
@@ -50,6 +61,7 @@ class _CategoryCoursesPageState extends State<CategoryCoursesPage> {
         .toList();
   }
 
+  // Free the controller when this page is closed.
   @override
   void dispose() {
     _search.dispose();
@@ -61,21 +73,26 @@ class _CategoryCoursesPageState extends State<CategoryCoursesPage> {
     final courses = _courses;
     final total = coursesInCategory(widget.category).length;
 
+    // Scaffold = the whole category page (light purple background).
     return Scaffold(
       backgroundColor: const Color(0xFFF4F1FF),
+      // SafeArea = keeps content away from the notch / status bar.
       body: SafeArea(
+        // Column -> header on top, optional search field, then the course list.
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _header(total),
             if (_showSearch) _searchField(),
+            // Expanded = fills leftover height with the list or empty state.
             Expanded(
               child: courses.isEmpty
                   ? _emptyState()
+                  // ListView.separated = scrolls the filtered course cards.
                   : ListView.separated(
                       padding: const EdgeInsets.fromLTRB(18, 12, 18, 22),
                       itemCount: courses.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      separatorBuilder: (_, _) => const SizedBox(height: 12),
                       itemBuilder: (context, index) =>
                           _CourseCard(course: courses[index]),
                     ),
@@ -91,10 +108,13 @@ class _CategoryCoursesPageState extends State<CategoryCoursesPage> {
   Widget _header(int total) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 14, 18, 6),
+      // Row -> back button, category name + count, and the filter button.
       child: Row(
         children: [
+          // GestureDetector = makes the round back button tappable.
           GestureDetector(
             onTap: () => Navigator.pop(context),
+            // Container = white circular back-button background.
             child: Container(
               width: 42,
               height: 42,
@@ -110,7 +130,9 @@ class _CategoryCoursesPageState extends State<CategoryCoursesPage> {
             ),
           ),
           const SizedBox(width: 12),
+          // Expanded = title block sits between the two round buttons.
           Expanded(
+            // Column = category name above the course-count chip.
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -147,11 +169,13 @@ class _CategoryCoursesPageState extends State<CategoryCoursesPage> {
               ],
             ),
           ),
+          // Filter button: tap to show or hide the search field.
           GestureDetector(
             onTap: () => setState(() {
               _showSearch = !_showSearch;
               if (!_showSearch) _search.clear();
             }),
+            // Container = white circular filter-button background.
             child: Container(
               width: 42,
               height: 42,
@@ -171,9 +195,11 @@ class _CategoryCoursesPageState extends State<CategoryCoursesPage> {
     );
   }
 
+  // The filter field. The list rebuilds on every keystroke (setState).
   Widget _searchField() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 8, 18, 4),
+      // TextField = live filter box that narrows the course list.
       child: TextField(
         controller: _search,
         autofocus: true,
@@ -197,14 +223,17 @@ class _CategoryCoursesPageState extends State<CategoryCoursesPage> {
 
   // -------------------------------------------------------- empty state
 
+  // Shown when no course in this category matches the search.
   Widget _emptyState() {
     final filtering = _search.text.trim().isNotEmpty;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
+        // Column = icon, empty message, then the hint text.
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            // Container = big pale circle behind the icon.
             Container(
               width: 88,
               height: 88,
@@ -212,6 +241,7 @@ class _CategoryCoursesPageState extends State<CategoryCoursesPage> {
                 color: Color(0xFFEEE9FF),
                 shape: BoxShape.circle,
               ),
+              // Icon = "no results" magnifier symbol.
               child: const Icon(
                 Icons.search_off_rounded,
                 color: _purple,
@@ -244,6 +274,8 @@ class _CategoryCoursesPageState extends State<CategoryCoursesPage> {
 
 // ----------------------------------------------------------- course card
 
+/// One white card that shows a single course
+/// (image, title, instructor, rating, price).
 class _CourseCard extends StatelessWidget {
   final Course course;
 
@@ -259,9 +291,11 @@ class _CourseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // GestureDetector = the whole card is tappable -> course details.
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () => _openDetails(context),
+      // Container = white rounded course card with a soft shadow.
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
@@ -275,17 +309,19 @@ class _CourseCard extends StatelessWidget {
             ),
           ],
         ),
+        // Row = course image on the left, details on the right.
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(14),
+              // Image.asset = the course thumbnail.
               child: Image.asset(
                 course.image,
                 width: 84,
                 height: 84,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
+                errorBuilder: (_, _, _) => Container(
                   width: 84,
                   height: 84,
                   color: const Color(0xFFEEE9FF),
@@ -294,7 +330,9 @@ class _CourseCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
+            // Expanded = text details fill the rest of the card.
             Expanded(
+              // Column = title, instructor, rating row, then price row.
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -317,6 +355,7 @@ class _CourseCard extends StatelessWidget {
                     style: const TextStyle(color: _muted, fontSize: 12),
                   ),
                   const SizedBox(height: 7),
+                  // Row -> star rating, number of students, and duration.
                   Row(
                     children: [
                       const Icon(Icons.star_rounded, color: _star, size: 15),
@@ -354,6 +393,7 @@ class _CourseCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
+                  // Row -> price on the left, favourite heart on the right.
                   Row(
                     children: [
                       Text(
@@ -379,6 +419,7 @@ class _CourseCard extends StatelessWidget {
 
   /// Shared favourite state — the same heart as the home and details pages.
   Widget _favoriteButton(BuildContext context) {
+    // ValueListenableBuilder = rebuilds the heart when the wishlist changes.
     return ValueListenableBuilder<Set<String>>(
       valueListenable: favoriteIds,
       builder: (context, ids, _) {

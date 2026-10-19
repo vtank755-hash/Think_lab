@@ -7,12 +7,13 @@ import 'purchases.dart';
 import 'quiz_page.dart';
 import 'quiz_results.dart';
 import 'session.dart';
+import 'widgets/module_row.dart';
+import 'widgets/progress_card.dart';
 
 const _heading = Color(0xFF2B2356);
 const _muted = Color(0xFF9A96B8);
 const _purple = Color(0xFF6B45F0);
 const _green = Color(0xFF25A55F);
-const _chipBg = Color(0xFFF4F1FF);
 
 /// The **My Learning** tab — every course the signed-in user is taking.
 ///
@@ -28,9 +29,23 @@ const _chipBg = Color(0xFFF4F1FF);
 /// Everything is driven by the same per-user stores as the rest of the app
 /// (`purchases.dart` + `progress.dart`), so two accounts see their own lists.
 // =====================================================
+// UI STRUCTURE (SCREEN VIEW)
+//  1. Back button              -> GestureDetector + Icon (tap -> leave tab)
+//  2. Page title               -> Text 'My Learning'
+//  3. Segment tabs             -> GestureDetector pills 'In Progress' / 'Completed'
+//  4. Empty state              -> Icon + Text + 'Browse courses' button
+//  5. Course list              -> ListView.separated of course cards
+//  6. Card thumbnail + title   -> Row (Image.asset + Text title/instructor)
+//  7. Card progress bar        -> ProgressCard or 'Completed · 100%' badge
+//  8. Card curriculum          -> Text 'Curriculum' + ModuleRow list
+//  9. Card action button       -> FilledButton 'Continue' / 'Take Quiz' / certificate
+// =====================================================
 // MY LEARNING PAGE
+// StatefulWidget is used here because the page rebuilds on account switch,
+// on every lesson completion and on every saved quiz attempt.
 // Shows the courses the user is learning (in progress)
 // and the courses that are fully completed.
+// Layout: Column -> header + two tabs + list of course cards.
 // =====================================================
 class MyLearningPage extends StatefulWidget {
   /// Leaves the Learning tab (back to Home).
@@ -70,12 +85,14 @@ class _MyLearningPageState extends State<MyLearningPage> {
                     .toList();
                 final courses = _tab == 0 ? inProgress : completed;
 
+                // Column = header, tabs, then the course list.
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _header(),
                     _segmentedTabs(),
                     if (courses.isEmpty)
+                      // Expanded = fills the rest of screen with empty state.
                       Expanded(
                         child: _EmptyLearning(
                           tab: _tab,
@@ -84,7 +101,9 @@ class _MyLearningPageState extends State<MyLearningPage> {
                         ),
                       )
                     else
+                      // Expanded = fills the rest of screen with the list.
                       Expanded(
+                        // ListView.separated = scrollable course cards with gaps.
                         child: ListView.separated(
                           padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
                           itemCount: courses.length,
@@ -137,10 +156,13 @@ class _MyLearningPageState extends State<MyLearningPage> {
   Widget _header() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
+      // Row = switch button beside the page title.
       child: Row(
         children: [
+          // GestureDetector = tap leaves the Learning tab.
           GestureDetector(
             onTap: widget.onBack,
+            // Container = white circle behind the switch icon.
             child: Container(
               width: 42,
               height: 42,
@@ -148,10 +170,12 @@ class _MyLearningPageState extends State<MyLearningPage> {
                 color: Colors.white,
                 shape: BoxShape.circle,
               ),
+              // Icon = swap arrows glyph for leaving the tab.
               child: const Icon(Icons.swap_horiz, color: _heading, size: 20),
             ),
           ),
           const SizedBox(width: 12),
+          // Expanded = page title fills the remaining width.
           const Expanded(
             child: Text(
               'My Learning',
@@ -171,9 +195,11 @@ class _MyLearningPageState extends State<MyLearningPage> {
   Widget _segmentedTabs() {
     Widget tab(int index, String label) {
       final active = _tab == index;
+      // GestureDetector = tap switches the active segment tab.
       return GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () => setState(() => _tab = index),
+        // Container = pill background for the tab label.
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
@@ -194,6 +220,7 @@ class _MyLearningPageState extends State<MyLearningPage> {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 6, 20, 4),
+      // Row = In Progress tab beside the Completed tab.
       child: Row(children: [tab(0, 'In Progress'), tab(1, 'Completed')]),
     );
   }
@@ -221,15 +248,19 @@ class _LearningCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = currentUser.value;
+    // Real lesson counts for THIS user (percentages come from real data).
     final total = courseLessonCount(course);
     final done = completedInCourse(course, userId: user);
-    final percent = progressPercent(done, total);
+    // Lessons this user already finished (needed for each module row).
+    final doneLessons = completedOf(user).value;
     // Stage 1 finished → the card offers the final quiz instead of Continue.
     final lessonsDone = isCourseLessonsComplete(course);
 
+    // Card layout: top row (image + title) -> progress -> curriculum -> button.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // Container = white rounded course card.
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
@@ -243,60 +274,99 @@ class _LearningCard extends StatelessWidget {
               ),
             ],
           ),
-          child: Row(
+          // Column = thumbnail row then progress inside the card.
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Image.asset(
-                  course.image,
-                  width: 86,
-                  height: 86,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => Container(
-                    width: 86,
-                    height: 86,
-                    color: const Color(0xFFEEE9FF),
-                    child: const Icon(Icons.menu_book_rounded, color: _purple),
+              // Row = course thumbnail beside title and instructor.
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    // Image.asset = course thumbnail picture.
+                    child: Image.asset(
+                      course.image,
+                      width: 86,
+                      height: 86,
+                      fit: BoxFit.cover,
+                      // Container = placeholder if the thumbnail is missing.
+                      errorBuilder: (_, _, _) => Container(
+                        width: 86,
+                        height: 86,
+                        color: const Color(0xFFEEE9FF),
+                        child: const Icon(
+                          Icons.menu_book_rounded,
+                          color: _purple,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      course.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: _heading,
-                        fontSize: 15.5,
-                        fontWeight: FontWeight.w800,
-                      ),
+                  const SizedBox(width: 12),
+                  // Expanded = text column fills the leftover width.
+                  Expanded(
+                    // Column = course title above the instructor name.
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          course.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: _heading,
+                            fontSize: 15.5,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          course.instructor,
+                          style: const TextStyle(
+                            color: _purple,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      course.instructor,
-                      style: const TextStyle(
-                        color: _purple,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    if (completed)
-                      _completedBadge()
-                    else
-                      _progress(done, total, percent),
-                  ],
-                ),
+                  ),
+                ],
               ),
+              const SizedBox(height: 12),
+              // Real progress: '9 / 43 lessons completed' + '21%' + bar.
+              if (completed)
+                _completedBadge()
+              else
+                ProgressCard(completed: done, total: total),
             ],
           ),
         ),
+
+        // Curriculum list — the same module rows as the Course Details page.
+        if (course.modules.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          const Text(
+            'Curriculum',
+            style: TextStyle(
+              color: _heading,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 10),
+          for (var i = 0; i < course.modules.length; i++) ...[
+            ModuleRow(
+              course: course,
+              moduleIndex: i,
+              completedLessons: doneLessons,
+            ),
+            const SizedBox(height: 10),
+          ],
+        ],
+
         const SizedBox(height: 10),
+        // One button: certificate (course done) / quiz (lessons done) / continue.
         if (completed)
           _certificateButton()
         else if (lessonsDone)
@@ -307,53 +377,7 @@ class _LearningCard extends StatelessWidget {
     );
   }
 
-  /// Course progress card — the SAME style as the Curriculum block on Course
-  /// Details: `9 / 43 lessons completed` + `21%` + bar, all calculated from
-  /// the real lesson data of THIS course.
-  Widget _progress(int completed, int total, int percent) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: _chipBg,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  progressLabel(completed, total),
-                  style: const TextStyle(color: _muted, fontSize: 13),
-                ),
-              ),
-              Text(
-                '$percent%',
-                style: const TextStyle(
-                  color: _purple,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: total == 0 ? 0 : completed / total,
-              minHeight: 8,
-              color: _purple,
-              backgroundColor: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
+  // Green "Completed · 100%" badge for the Completed tab.
   Widget _completedBadge() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -375,6 +399,7 @@ class _LearningCard extends StatelessWidget {
   /// STAGE 1 done, quiz not passed → the card offers the final quiz of THIS
   /// course instead of "Continue".
   Widget _quizButton(BuildContext context) {
+    // FilledButton = opens the final quiz of this course.
     return FilledButton(
       // All lessons finished -> Open the final quiz of this course.
       onPressed: () => Navigator.push(
@@ -398,6 +423,7 @@ class _LearningCard extends StatelessWidget {
   }
 
   Widget _continueButton() {
+    // FilledButton = resumes the last watched lesson.
     return FilledButton(
       onPressed: onContinue,
       style: FilledButton.styleFrom(
@@ -417,6 +443,7 @@ class _LearningCard extends StatelessWidget {
   }
 
   Widget _certificateButton() {
+    // OutlinedButton = shows the course certificate.
     return OutlinedButton(
       onPressed: onCertificate,
       style: OutlinedButton.styleFrom(
@@ -452,6 +479,7 @@ class _EmptyLearning extends StatelessWidget {
     this.onBrowse,
   });
 
+  // The text depends on the tab and on whether the user enrolled in anything.
   String get _message {
     if (tab == 0) {
       return enrolled
@@ -466,9 +494,11 @@ class _EmptyLearning extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 36),
+        // Column = icon, message, then browse button.
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Container = purple circle behind the empty-state icon.
             Container(
               width: 76,
               height: 76,
@@ -476,6 +506,7 @@ class _EmptyLearning extends StatelessWidget {
                 color: Color(0xFFEEE9FF),
                 shape: BoxShape.circle,
               ),
+              // Icon = open book icon for the empty state.
               child: const Icon(
                 Icons.menu_book_rounded,
                 color: _purple,
@@ -490,6 +521,7 @@ class _EmptyLearning extends StatelessWidget {
             ),
             if (tab == 0 && !enrolled) ...[
               const SizedBox(height: 18),
+              // FilledButton = goes back to browse courses.
               FilledButton(
                 onPressed: onBrowse,
                 style: FilledButton.styleFrom(
