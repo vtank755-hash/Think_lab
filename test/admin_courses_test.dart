@@ -115,14 +115,14 @@ void main() {
     expect(find.text('Web Dev Bootcamp'), findsNothing);
   });
 
-  // ── 8. Edit button opens the edit bottom sheet ─────────────────────────────
-  testWidgets('Edit button opens edit sheet with pre-filled title', (tester) async {
+  // ── 8. Edit button opens Edit Course & Quiz page ───────────────────────────
+  testWidgets('Edit button opens Edit Course & Quiz page with pre-filled title', (tester) async {
     await pumpCoursesPage(tester);
 
     await tester.tap(find.byKey(const ValueKey('edit-c1')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Edit Course'), findsOneWidget);
+    expect(find.text('Edit Course & Quiz'), findsOneWidget);
     expect(find.text('Save Changes'), findsOneWidget);
   });
 
@@ -140,15 +140,15 @@ void main() {
     expect(find.text('Manage Courses'), findsOneWidget);
   });
 
-  // ── 10. Add sheet opens when Add button is tapped ─────────────────────────
-  testWidgets('Add button opens Add New Course sheet', (tester) async {
+  // ── 10. Add button opens Create Course & Quiz page ─────────────────────────
+  testWidgets('Add button opens Create Course & Quiz page', (tester) async {
     await pumpCoursesPage(tester);
 
     await tester.tap(find.byKey(const ValueKey('add-course-button')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Add New Course'), findsOneWidget);
-    expect(find.text('Add Course'), findsOneWidget);
+    expect(find.text('Create Course & Quiz'), findsOneWidget);
+    expect(find.text('Save Draft'), findsOneWidget);
   });
 
   // ── 11. Tapping Total Courses stat card opens Manage Courses ──────────────

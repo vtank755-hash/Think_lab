@@ -269,15 +269,6 @@ class _CreateCoursePageState extends State<CreateCoursePage> {
                   letterSpacing: -0.3,
                 ),
               ),
-              const SizedBox(height: 1),
-              Text(
-                isEditing ? 'Edit Course' : 'Add New Course',
-                style: const TextStyle(
-                  color: _muted,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
             ],
           ),
 
@@ -820,56 +811,34 @@ class _CreateCoursePageState extends State<CreateCoursePage> {
           ),
           const Spacer(),
 
-          // Save / Add Buttons
-          Row(
-            children: [
-              if (!isEditing) ...[
-                GestureDetector(
-                  key: const ValueKey('add-course-submit-btn'),
-                  onTap: _saveCourse,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    child: const Text(
-                      'Add Course',
-                      style: TextStyle(
-                        color: _purple,
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
+          // Save / Draft Button
+          GestureDetector(
+            key: const ValueKey('save-course-btn'),
+            onTap: _saveCourse,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 12),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [_purpleAccent, _purple],
                 ),
-                const SizedBox(width: 8),
-              ],
-              GestureDetector(
-                key: const ValueKey('save-course-btn'),
-                onTap: _saveCourse,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [_purpleAccent, _purple],
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: _purple.withValues(alpha: 0.3),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: _purple.withValues(alpha: 0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
-                  child: Text(
-                    isEditing ? 'Save Changes' : 'Save Draft',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
+                ],
+              ),
+              child: Text(
+                isEditing ? 'Save Changes' : 'Save Draft',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
-            ],
+            ),
           ),
         ],
       ),
