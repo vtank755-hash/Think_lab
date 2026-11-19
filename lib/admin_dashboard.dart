@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'admin_courses_page.dart';
 import 'admin_login.dart';
-import 'create_course_page.dart';
+import 'create_course_quiz_page.dart';
 import 'login_user.dart';
 import 'session.dart';
 
@@ -375,7 +375,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const CreateCoursePage()),
+                  MaterialPageRoute(builder: (_) => const CreateCourseQuizPage()),
                 );
               },
             ),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'create_course_page.dart';
+import 'create_course_quiz_page.dart';
 
 // ─── Shared palette (kept in sync with admin_dashboard.dart) ───────────────
 const _purple = Color(0xFF6B45F0);
@@ -179,12 +179,12 @@ class _AdminCoursesPageState extends State<AdminCoursesPage> {
 
   // ── Edit course ───────────────────────────────────────────────────────────
 
-  /// Opens the CreateCoursePage to edit [course].
+  /// Opens the CreateCourseQuizPage to edit [course].
   void _openEditSheet(AdminCourse course) async {
     final updated = await Navigator.push<AdminCourse>(
       context,
       MaterialPageRoute(
-        builder: (_) => CreateCoursePage(initialCourse: course),
+        builder: (_) => CreateCourseQuizPage(initialCourse: course),
       ),
     );
     if (updated != null) {
@@ -203,12 +203,12 @@ class _AdminCoursesPageState extends State<AdminCoursesPage> {
 
   // ── Add course ────────────────────────────────────────────────────────────
 
-  /// Opens the CreateCoursePage as a full-screen page to create a new course.
+  /// Opens the CreateCourseQuizPage as a full-screen page to create a new course.
   void _openCreateCoursePage() async {
     final newCourse = await Navigator.push<AdminCourse>(
       context,
       MaterialPageRoute(
-        builder: (_) => const CreateCoursePage(),
+        builder: (_) => const CreateCourseQuizPage(),
       ),
     );
     if (newCourse != null) {

@@ -54,7 +54,7 @@ void main() {
     await pumpCreateCourse(tester);
 
     expect(find.text('Upload Course Video / Syllabus'), findsOneWidget);
-    expect(find.text('Browse Files'), findsOneWidget);
+    expect(find.text('+ Browse Files'), findsOneWidget);
     expect(find.text('Lesson_01_Intro_Design_Systems.mp4'), findsOneWidget);
     expect(find.text('Syllabus_Tokens_Framework.pdf'), findsOneWidget);
     expect(find.text('100% Uploaded'), findsOneWidget);

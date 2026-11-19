@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:think_lab/admin_courses_page.dart';
 import 'package:think_lab/admin_dashboard.dart';
+import 'package:think_lab/create_course_quiz_page.dart';
 
 import 'test_utils.dart';
 
@@ -173,5 +174,52 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Manage Courses'), findsOneWidget);
+  });
+
+  // ── 13. Exact Flow: Dashboard -> Manage Courses -> Tap + Add -> CreateCourseQuizPage -> Back -> Manage Courses
+  testWidgets('Exact Flow: Dashboard -> Courses -> + Add -> CreateCourseQuizPage -> Back -> Courses', (tester) async {
+    tester.view.physicalSize = const Size(800, 1800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    // 1. Open Admin Dashboard
+    await pumpDashboard(tester);
+    expect(find.text('Admin Panel'), findsOneWidget);
+
+    // 2. Open Manage Courses
+    await tester.tap(find.text('Courses'));
+    await tester.pumpAndSettle();
+    expect(find.text('Manage Courses'), findsOneWidget);
+
+    // 3. Tap + Add
+    final addBtn = find.byKey(const ValueKey('add-course-button'));
+    expect(addBtn, findsOneWidget);
+    await tester.tap(addBtn);
+    await tester.pumpAndSettle();
+
+    // 4. CreateCourseQuizPage opens successfully
+    expect(find.byType(CreateCourseQuizPage), findsOneWidget);
+    expect(find.text('THINKE LAB'), findsOneWidget);
+    expect(find.text('Create Course & Quiz'), findsOneWidget);
+    expect(find.text('1. COURSE DETAILS'), findsOneWidget);
+    expect(find.text('2. COURSE MEDIA & LESSONS'), findsOneWidget);
+    expect(find.text('Save Draft'), findsOneWidget);
+
+    // 5. Back button returns to Manage Courses
+    final backBtn = find.byKey(const ValueKey('create-course-back-btn'));
+    expect(backBtn, findsOneWidget);
+    await tester.tap(backBtn);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Manage Courses'), findsOneWidget);
+    expect(find.byType(CreateCourseQuizPage), findsNothing);
+
+    // 6. No existing Manage Courses functionality is broken
+    expect(find.text('Web Dev Bootcamp'), findsOneWidget);
+    expect(find.text('UI/UX Masterclass'), findsOneWidget);
+    expect(find.text('Digital Marketing'), findsOneWidget);
   });
 }
