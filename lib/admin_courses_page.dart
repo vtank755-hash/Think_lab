@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'admin_create_course_page.dart';
+import 'create_course_page.dart';
 
 // ─── Shared palette (kept in sync with admin_dashboard.dart) ───────────────
 const _purple = Color(0xFF6B45F0);
@@ -24,6 +24,10 @@ class AdminCourse {
   String price;
   String imageAsset;
   CourseStatus status;
+  String? category;
+  String? level;
+  String? description;
+  String? visibility;
 
   AdminCourse({
     required this.id,
@@ -33,6 +37,11 @@ class AdminCourse {
     required this.price,
     required this.imageAsset,
     required this.status,
+    this.category = 'Design & UI',
+    this.level = 'Intermediate',
+    this.description =
+        'Master comprehensive design systems from token management to multi-brand components and interactive micro-interactions.',
+    this.visibility = 'Public (Catalog)',
   });
 }
 
@@ -76,7 +85,6 @@ List<AdminCourse> buildDefaultCourses() => [
 ///
 /// Lists all courses with search, status badge, edit & delete actions.
 /// Accessible from the Admin Dashboard bottom nav (Courses tab, index 1).
-/// Tapping Add or Edit opens [AdminCreateCoursePage] for a full-form experience.
 class AdminCoursesPage extends StatefulWidget {
   const AdminCoursesPage({super.key});
 
@@ -100,7 +108,7 @@ class _AdminCoursesPageState extends State<AdminCoursesPage> {
     super.dispose();
   }
 
-  // ── Derived list (filtered by search query) ────────────────────────────────
+  // ── Derived list (filtered by search query) ───────────────────────────────
 
   /// Returns [_allCourses] filtered by [_query] (case-insensitive).
   List<AdminCourse> get _filtered {
@@ -121,72 +129,92 @@ class _AdminCoursesPageState extends State<AdminCoursesPage> {
   void _confirmDelete(AdminCourse course) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          'Delete Course',
-          style: TextStyle(color: _heading, fontWeight: FontWeight.w800),
-        ),
-        content: Text(
-          'Are you sure you want to delete "${course.title}"? This cannot be undone.',
-          style: const TextStyle(
-            color: Color(0xFF6F6B92),
-            fontSize: 14,
-            height: 1.5,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: _purple)),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              setState(() => _allCourses.remove(course));
-              _showSnack('${course.title} deleted.');
-            },
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFFF04438),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+      builder:
+          (ctx) => AlertDialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: const Text(
+              'Delete Course',
+              style: TextStyle(color: _heading, fontWeight: FontWeight.w800),
+            ),
+            content: Text(
+              'Are you sure you want to delete "${course.title}"? This cannot be undone.',
+              style: const TextStyle(
+                color: Color(0xFF6F6B92),
+                fontSize: 14,
+                height: 1.5,
               ),
             ),
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(color: _purple),
+                ),
+              ),
+              FilledButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  setState(() => _allCourses.remove(course));
+                  _showSnack('${course.title} deleted.');
+                },
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFFF04438),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Delete',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
-  // ── Edit course → opens AdminCreateCoursePage ─────────────────────────────
+  // ── Edit course ───────────────────────────────────────────────────────────
 
-  /// Navigates to [AdminCreateCoursePage] pre-filled with [course] data.
-  void _openEditSheet(AdminCourse course) {
-    Navigator.push(
+  /// Opens the CreateCoursePage to edit [course].
+  void _openEditSheet(AdminCourse course) async {
+    final updated = await Navigator.push<AdminCourse>(
       context,
       MaterialPageRoute(
-        builder: (_) => AdminCreateCoursePage(
-          course: course,
-          onSaved: (_) => setState(() {}), // triggers list rebuild
-        ),
+        builder: (_) => CreateCoursePage(initialCourse: course),
       ),
     );
+    if (updated != null) {
+      setState(() {
+        course.title = updated.title;
+        course.price = updated.price;
+        course.status = updated.status;
+        course.category = updated.category;
+        course.level = updated.level;
+        course.description = updated.description;
+        course.visibility = updated.visibility;
+      });
+      _showSnack('${course.title} updated.');
+    }
   }
 
-  // ── Add course → opens AdminCreateCoursePage ──────────────────────────────
+  // ── Add course ────────────────────────────────────────────────────────────
 
-  /// Navigates to [AdminCreateCoursePage] in create-new mode.
-  void _openAddSheet() {
-    Navigator.push(
+  /// Opens the CreateCoursePage to add a new course.
+  void _openAddSheet() async {
+    final newCourse = await Navigator.push<AdminCourse>(
       context,
       MaterialPageRoute(
-        builder: (_) => AdminCreateCoursePage(
-          onSaved: (saved) => setState(() => _allCourses.add(saved)),
-        ),
+        builder: (_) => const CreateCoursePage(),
       ),
     );
+    if (newCourse != null) {
+      setState(() => _allCourses.add(newCourse));
+      _showSnack('"${newCourse.title}" added successfully.');
+    }
   }
 
   // ── Snack helper ──────────────────────────────────────────────────────────
@@ -212,7 +240,7 @@ class _AdminCoursesPageState extends State<AdminCoursesPage> {
 
     return Column(
       children: [
-        // ── Page header ────────────────────────────────────────────────────
+        // ── Page header ──────────────────────────────────────────────────
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
           child: Row(
@@ -228,7 +256,7 @@ class _AdminCoursesPageState extends State<AdminCoursesPage> {
                   ),
                 ),
               ),
-              // ── Add button ─────────────────────────────────────────────
+              // ── Add button ───────────────────────────────────────────
               GestureDetector(
                 key: const ValueKey('add-course-button'),
                 onTap: _openAddSheet,
@@ -250,9 +278,13 @@ class _AdminCoursesPageState extends State<AdminCoursesPage> {
                       ),
                     ],
                   ),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.add_rounded, color: Colors.white, size: 18),
+                  child: Row(
+                    children: const [
+                      Icon(
+                        Icons.add_rounded,
+                        color: Colors.white,
+                        size: 18,
+                      ),
                       SizedBox(width: 6),
                       Text(
                         'Add',
@@ -270,7 +302,7 @@ class _AdminCoursesPageState extends State<AdminCoursesPage> {
           ),
         ),
 
-        // ── Search bar ─────────────────────────────────────────────────────
+        // ── Search bar ───────────────────────────────────────────────────
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
           child: Container(
@@ -309,7 +341,7 @@ class _AdminCoursesPageState extends State<AdminCoursesPage> {
           ),
         ),
 
-        // ── Course list ────────────────────────────────────────────────────
+        // ── Course list ──────────────────────────────────────────────────
         Expanded(
           child: courses.isEmpty
               ? Center(
@@ -333,6 +365,81 @@ class _AdminCoursesPageState extends State<AdminCoursesPage> {
                 ),
         ),
       ],
+    );
+  }
+
+  // ── Shared sheet helpers ──────────────────────────────────────────────────
+
+  /// Labelled text field for bottom-sheet forms.
+  Widget _sheetField({
+    required String label,
+    required TextEditingController controller,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: _muted,
+            fontSize: 11.5,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.6,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFF7F8FE),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFE2E0F4)),
+          ),
+          child: TextField(
+            controller: controller,
+            style: const TextStyle(color: _heading, fontSize: 14),
+            decoration: const InputDecoration(
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Pill-shaped status toggle button for the bottom-sheet form.
+  Widget _statusToggle({
+    required String label,
+    required bool selected,
+    required Color activeColor,
+    required Color activeBg,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
+        decoration: BoxDecoration(
+          color: selected ? activeBg : const Color(0xFFF7F8FE),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? activeColor.withValues(alpha: 0.4) : const Color(0xFFE2E0F4),
+            width: 1.5,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? activeColor : _muted,
+            fontWeight: FontWeight.w700,
+            fontSize: 13.5,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -374,19 +481,19 @@ class _CourseCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Course thumbnail ─────────────────────────────────────────────
+          // ── Course thumbnail ───────────────────────────────────────────
           ClipRRect(
             borderRadius: BorderRadius.circular(14),
             child: _CourseThumbnail(assetPath: course.imageAsset),
           ),
           const SizedBox(width: 14),
 
-          // ── Course details ───────────────────────────────────────────────
+          // ── Course details ─────────────────────────────────────────────
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Title + status badge
+                // Title + status badge in the same row
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -402,6 +509,7 @@ class _CourseCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 6),
+                    // Status badge
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
@@ -451,6 +559,8 @@ class _CourseCard extends StatelessWidget {
                       ),
                     ),
                     const Spacer(),
+
+                    // Edit button
                     _ActionButton(
                       key: ValueKey('edit-${course.id}'),
                       icon: Icons.edit_outlined,
@@ -459,6 +569,8 @@ class _CourseCard extends StatelessWidget {
                       onTap: onEdit,
                     ),
                     const SizedBox(width: 8),
+
+                    // Delete button
                     _ActionButton(
                       key: ValueKey('delete-${course.id}'),
                       icon: Icons.delete_outline_rounded,
@@ -500,7 +612,11 @@ class _CourseThumbnail extends StatelessWidget {
             color: const Color(0xFFEEECFA),
             borderRadius: BorderRadius.circular(14),
           ),
-          child: const Icon(Icons.menu_book_outlined, color: _purple, size: 32),
+          child: const Icon(
+            Icons.menu_book_outlined,
+            color: _purple,
+            size: 32,
+          ),
         ),
       ),
     );

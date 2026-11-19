@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'admin_courses_page.dart';
 import 'admin_login.dart';
+import 'create_course_page.dart';
 import 'login_user.dart';
 import 'session.dart';
 
@@ -354,7 +355,12 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               iconColor: const Color(0xFF4C30DE),
               bgColor: const Color(0xFFEEECFA),
               label: 'Add',
-              onTap: () => _showActionFeedback('Add Course'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CreateCoursePage()),
+                );
+              },
             ),
             _buildActionItem(
               icon: Icons.groups_outlined,
