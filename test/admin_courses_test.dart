@@ -150,4 +150,28 @@ void main() {
     expect(find.text('Add New Course'), findsOneWidget);
     expect(find.text('Add Course'), findsOneWidget);
   });
+
+  // ── 11. Tapping Total Courses stat card opens Manage Courses ──────────────
+  testWidgets('Tapping Total Courses stat card opens Manage Courses', (tester) async {
+    await pumpDashboard(tester);
+
+    expect(find.text('Admin Panel'), findsOneWidget);
+
+    final coursesStat = find.byKey(const ValueKey('stat-card-courses'));
+    expect(coursesStat, findsOneWidget);
+    await tester.tap(coursesStat);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Manage Courses'), findsOneWidget);
+  });
+
+  // ── 12. AdminDashboardPage with initialTab: 1 opens directly to Manage Courses ─
+  testWidgets('AdminDashboardPage with initialTab: 1 opens directly to Manage Courses', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: AdminDashboardPage(initialTab: 1)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Manage Courses'), findsOneWidget);
+  });
 }

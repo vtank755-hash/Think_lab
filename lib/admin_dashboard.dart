@@ -16,14 +16,21 @@ const _green = Color(0xFF25A55F);
 ///
 /// Opened immediately after successful admin login from [AdminLoginPage].
 class AdminDashboardPage extends StatefulWidget {
-  const AdminDashboardPage({super.key});
+  final int initialTab;
+  const AdminDashboardPage({super.key, this.initialTab = 0});
 
   @override
   State<AdminDashboardPage> createState() => _AdminDashboardPageState();
 }
 
 class _AdminDashboardPageState extends State<AdminDashboardPage> {
-  int _currentTab = 0;
+  late int _currentTab;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentTab = widget.initialTab;
+  }
 
   void _showActionFeedback(String actionName) {
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -206,6 +213,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             const SizedBox(width: 16),
             Expanded(
               child: _buildStatCard(
+                key: const ValueKey('stat-card-courses'),
                 icon: Icons.menu_book_outlined,
                 iconColor: const Color(0xFF4C30DE),
                 iconBg: const Color(0xFFE8EEFE),
@@ -214,6 +222,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 badgeBg: const Color(0xFFEEF0FE),
                 value: '342',
                 label: 'Total Courses',
+                onTap: () => setState(() => _currentTab = 1),
               ),
             ),
           ],
@@ -261,75 +270,82 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     required Color badgeBg,
     required String value,
     required String label,
+    VoidCallback? onTap,
+    Key? key,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: iconBg,
-                  borderRadius: BorderRadius.circular(14),
+    return GestureDetector(
+      key: key,
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: iconBg,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(icon, color: iconColor, size: 22),
                 ),
-                child: Icon(icon, color: iconColor, size: 22),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: badgeBg,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  badgeText,
-                  style: TextStyle(
-                    color: badgeTextColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: badgeBg,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    badgeText,
+                    style: TextStyle(
+                      color: badgeTextColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Text(
+              value,
+              style: const TextStyle(
+                color: _heading,
+                fontSize: 26,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.4,
               ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Text(
-            value,
-            style: const TextStyle(
-              color: _heading,
-              fontSize: 26,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.4,
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: const TextStyle(
-              color: _muted,
-              fontSize: 13.5,
-              fontWeight: FontWeight.w500,
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: const TextStyle(
+                color: _muted,
+                fontSize: 13.5,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -351,6 +367,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             _buildActionItem(
+              key: const ValueKey('quick-action-add'),
               icon: Icons.add_rounded,
               iconColor: const Color(0xFF4C30DE),
               bgColor: const Color(0xFFEEECFA),
@@ -390,6 +407,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   Widget _buildActionItem({
+    Key? key,
     required IconData icon,
     required Color iconColor,
     required Color bgColor,
@@ -397,6 +415,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     required VoidCallback onTap,
   }) {
     return GestureDetector(
+      key: key,
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Column(
@@ -451,7 +470,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     ];
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(10, 8, 10, 18),
+      padding: const EdgeInsets.fromLTRB(10, 6, 10, 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -467,37 +486,42 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           for (var i = 0; i < navs.length; i++)
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () {
-                if (i == 4) {
-                  _showLogoutDialog();
-                } else {
-                  setState(() => _currentTab = i);
-                }
-              },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      navs[i]['icon'] as IconData,
-                      color: _currentTab == i ? _purple : _muted,
-                      size: 24,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      navs[i]['label'] as String,
-                      style: TextStyle(
-                        fontSize: 11,
+            Expanded(
+              child: InkWell(
+                key: ValueKey(
+                  'admin-nav-${(navs[i]['label'] as String).toLowerCase()}',
+                ),
+                borderRadius: BorderRadius.circular(16),
+                onTap: () {
+                  if (i == 4) {
+                    _showLogoutDialog();
+                  } else {
+                    setState(() => _currentTab = i);
+                  }
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        navs[i]['icon'] as IconData,
                         color: _currentTab == i ? _purple : _muted,
-                        fontWeight: _currentTab == i
-                            ? FontWeight.w700
-                            : FontWeight.w500,
+                        size: 24,
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        navs[i]['label'] as String,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: _currentTab == i ? _purple : _muted,
+                          fontWeight: _currentTab == i
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

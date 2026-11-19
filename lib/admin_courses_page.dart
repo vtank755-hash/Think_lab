@@ -262,14 +262,14 @@ class _AdminCoursesPageState extends State<AdminCoursesPage> {
                 onTap: _openAddSheet,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
+                    horizontal: 18,
                     vertical: 10,
                   ),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [Color(0xFF8B5CF6), Color(0xFF6B45F0)],
                     ),
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
                         color: _purple.withValues(alpha: 0.28),
@@ -279,18 +279,19 @@ class _AdminCoursesPageState extends State<AdminCoursesPage> {
                     ],
                   ),
                   child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: const [
                       Icon(
                         Icons.add_rounded,
                         color: Colors.white,
                         size: 18,
                       ),
-                      SizedBox(width: 6),
+                      SizedBox(width: 4),
                       Text(
                         'Add',
                         style: TextStyle(
                           color: Colors.white,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w800,
                           fontSize: 14,
                         ),
                       ),
