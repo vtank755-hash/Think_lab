@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'admin_create_course_page.dart';
+
 // ─── Shared palette (kept in sync with admin_dashboard.dart) ───────────────
 const _purple = Color(0xFF6B45F0);
 const _heading = Color(0xFF1B1838);
@@ -74,6 +76,7 @@ List<AdminCourse> buildDefaultCourses() => [
 ///
 /// Lists all courses with search, status badge, edit & delete actions.
 /// Accessible from the Admin Dashboard bottom nav (Courses tab, index 1).
+/// Tapping Add or Edit opens [AdminCreateCoursePage] for a full-form experience.
 class AdminCoursesPage extends StatefulWidget {
   const AdminCoursesPage({super.key});
 
@@ -97,7 +100,7 @@ class _AdminCoursesPageState extends State<AdminCoursesPage> {
     super.dispose();
   }
 
-  // ── Derived list (filtered by search query) ───────────────────────────────
+  // ── Derived list (filtered by search query) ────────────────────────────────
 
   /// Returns [_allCourses] filtered by [_query] (case-insensitive).
   List<AdminCourse> get _filtered {
@@ -118,346 +121,71 @@ class _AdminCoursesPageState extends State<AdminCoursesPage> {
   void _confirmDelete(AdminCourse course) {
     showDialog(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            title: const Text(
-              'Delete Course',
-              style: TextStyle(color: _heading, fontWeight: FontWeight.w800),
-            ),
-            content: Text(
-              'Are you sure you want to delete "${course.title}"? This cannot be undone.',
-              style: const TextStyle(
-                color: Color(0xFF6F6B92),
-                fontSize: 14,
-                height: 1.5,
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text(
-                  'Cancel',
-                  style: TextStyle(color: _purple),
-                ),
-              ),
-              FilledButton(
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  setState(() => _allCourses.remove(course));
-                  _showSnack('${course.title} deleted.');
-                },
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFFF04438),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text(
-                  'Delete',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ],
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Delete Course',
+          style: TextStyle(color: _heading, fontWeight: FontWeight.w800),
+        ),
+        content: Text(
+          'Are you sure you want to delete "${course.title}"? This cannot be undone.',
+          style: const TextStyle(
+            color: Color(0xFF6F6B92),
+            fontSize: 14,
+            height: 1.5,
           ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: _purple)),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              setState(() => _allCourses.remove(course));
+              _showSnack('${course.title} deleted.');
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFF04438),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
     );
   }
 
-  // ── Edit course (bottom sheet) ────────────────────────────────────────────
+  // ── Edit course → opens AdminCreateCoursePage ─────────────────────────────
 
-  /// Opens a bottom-sheet form to edit [course] title, price, and status.
+  /// Navigates to [AdminCreateCoursePage] pre-filled with [course] data.
   void _openEditSheet(AdminCourse course) {
-    final titleCtrl = TextEditingController(text: course.title);
-    final priceCtrl = TextEditingController(text: course.price);
-    CourseStatus selectedStatus = course.status;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AdminCreateCoursePage(
+          course: course,
+          onSaved: (_) => setState(() {}), // triggers list rebuild
+        ),
       ),
-      builder:
-          (ctx) => StatefulBuilder(
-            builder: (ctx, setSheet) {
-              return Padding(
-                padding: EdgeInsets.only(
-                  left: 24,
-                  right: 24,
-                  top: 24,
-                  bottom: MediaQuery.of(ctx).viewInsets.bottom + 32,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // ── Sheet drag handle ────────────────────────────────
-                    Center(
-                      child: Container(
-                        width: 42,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE2E0F4),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    const Text(
-                      'Edit Course',
-                      style: TextStyle(
-                        color: _heading,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // ── Title field ──────────────────────────────────────
-                    _sheetField(
-                      label: 'COURSE TITLE',
-                      controller: titleCtrl,
-                    ),
-                    const SizedBox(height: 14),
-
-                    // ── Price field ──────────────────────────────────────
-                    _sheetField(label: 'PRICE', controller: priceCtrl),
-                    const SizedBox(height: 14),
-
-                    // ── Status toggle ────────────────────────────────────
-                    const Text(
-                      'STATUS',
-                      style: TextStyle(
-                        color: _muted,
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.6,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        _statusToggle(
-                          label: 'Active',
-                          selected: selectedStatus == CourseStatus.active,
-                          activeColor: const Color(0xFF25A55F),
-                          activeBg: const Color(0xFFE5F8EE),
-                          onTap:
-                              () => setSheet(
-                                () => selectedStatus = CourseStatus.active,
-                              ),
-                        ),
-                        const SizedBox(width: 10),
-                        _statusToggle(
-                          label: 'Draft',
-                          selected: selectedStatus == CourseStatus.draft,
-                          activeColor: const Color(0xFFF59E0B),
-                          activeBg: const Color(0xFFFFF8E6),
-                          onTap:
-                              () => setSheet(
-                                () => selectedStatus = CourseStatus.draft,
-                              ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-
-                    // ── Save button ──────────────────────────────────────
-                    SizedBox(
-                      width: double.infinity,
-                      height: 54,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF8B5CF6), Color(0xFF6B45F0)],
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: TextButton(
-                          onPressed: () {
-                            Navigator.pop(ctx);
-                            setState(() {
-                              course.title = titleCtrl.text.trim().isEmpty
-                                  ? course.title
-                                  : titleCtrl.text.trim();
-                              course.price = priceCtrl.text.trim().isEmpty
-                                  ? course.price
-                                  : priceCtrl.text.trim();
-                              course.status = selectedStatus;
-                            });
-                            _showSnack('${course.title} updated.');
-                          },
-                          child: const Text(
-                            'Save Changes',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
     );
   }
 
-  // ── Add course (bottom sheet) ─────────────────────────────────────────────
+  // ── Add course → opens AdminCreateCoursePage ──────────────────────────────
 
-  /// Opens a bottom-sheet form to add a new course.
+  /// Navigates to [AdminCreateCoursePage] in create-new mode.
   void _openAddSheet() {
-    final titleCtrl = TextEditingController();
-    final instructorCtrl = TextEditingController();
-    final priceCtrl = TextEditingController();
-    CourseStatus selectedStatus = CourseStatus.active;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AdminCreateCoursePage(
+          onSaved: (saved) => setState(() => _allCourses.add(saved)),
+        ),
       ),
-      builder:
-          (ctx) => StatefulBuilder(
-            builder: (ctx, setSheet) {
-              return Padding(
-                padding: EdgeInsets.only(
-                  left: 24,
-                  right: 24,
-                  top: 24,
-                  bottom: MediaQuery.of(ctx).viewInsets.bottom + 32,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // ── Sheet drag handle ────────────────────────────────
-                    Center(
-                      child: Container(
-                        width: 42,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE2E0F4),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    const Text(
-                      'Add New Course',
-                      style: TextStyle(
-                        color: _heading,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    _sheetField(label: 'COURSE TITLE', controller: titleCtrl),
-                    const SizedBox(height: 14),
-                    _sheetField(
-                      label: 'INSTRUCTOR NAME',
-                      controller: instructorCtrl,
-                    ),
-                    const SizedBox(height: 14),
-                    _sheetField(label: 'PRICE (e.g. ₹999)', controller: priceCtrl),
-                    const SizedBox(height: 14),
-
-                    // ── Status toggle ────────────────────────────────────
-                    const Text(
-                      'STATUS',
-                      style: TextStyle(
-                        color: _muted,
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.6,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        _statusToggle(
-                          label: 'Active',
-                          selected: selectedStatus == CourseStatus.active,
-                          activeColor: const Color(0xFF25A55F),
-                          activeBg: const Color(0xFFE5F8EE),
-                          onTap:
-                              () => setSheet(
-                                () => selectedStatus = CourseStatus.active,
-                              ),
-                        ),
-                        const SizedBox(width: 10),
-                        _statusToggle(
-                          label: 'Draft',
-                          selected: selectedStatus == CourseStatus.draft,
-                          activeColor: const Color(0xFFF59E0B),
-                          activeBg: const Color(0xFFFFF8E6),
-                          onTap:
-                              () => setSheet(
-                                () => selectedStatus = CourseStatus.draft,
-                              ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-
-                    // ── Add button ───────────────────────────────────────
-                    SizedBox(
-                      width: double.infinity,
-                      height: 54,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF8B5CF6), Color(0xFF6B45F0)],
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: TextButton(
-                          onPressed: () {
-                            final title = titleCtrl.text.trim();
-                            if (title.isEmpty) return; // Basic validation
-                            final newCourse = AdminCourse(
-                              id: 'c${_allCourses.length + 1}_new',
-                              title: title,
-                              instructor: instructorCtrl.text.trim().isEmpty
-                                  ? 'Unknown Instructor'
-                                  : instructorCtrl.text.trim(),
-                              students: '0 students',
-                              price: priceCtrl.text.trim().isEmpty
-                                  ? '₹0'
-                                  : priceCtrl.text.trim(),
-                              imageAsset:
-                                  'assets/images/courses/web_dev.jpg', // default thumb
-                              status: selectedStatus,
-                            );
-                            Navigator.pop(ctx);
-                            setState(() => _allCourses.add(newCourse));
-                            _showSnack('"$title" added successfully.');
-                          },
-                          child: const Text(
-                            'Add Course',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
     );
   }
 
@@ -484,7 +212,7 @@ class _AdminCoursesPageState extends State<AdminCoursesPage> {
 
     return Column(
       children: [
-        // ── Page header ──────────────────────────────────────────────────
+        // ── Page header ────────────────────────────────────────────────────
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
           child: Row(
@@ -500,7 +228,7 @@ class _AdminCoursesPageState extends State<AdminCoursesPage> {
                   ),
                 ),
               ),
-              // ── Add button ───────────────────────────────────────────
+              // ── Add button ─────────────────────────────────────────────
               GestureDetector(
                 key: const ValueKey('add-course-button'),
                 onTap: _openAddSheet,
@@ -522,13 +250,9 @@ class _AdminCoursesPageState extends State<AdminCoursesPage> {
                       ),
                     ],
                   ),
-                  child: Row(
-                    children: const [
-                      Icon(
-                        Icons.add_rounded,
-                        color: Colors.white,
-                        size: 18,
-                      ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.add_rounded, color: Colors.white, size: 18),
                       SizedBox(width: 6),
                       Text(
                         'Add',
@@ -546,7 +270,7 @@ class _AdminCoursesPageState extends State<AdminCoursesPage> {
           ),
         ),
 
-        // ── Search bar ───────────────────────────────────────────────────
+        // ── Search bar ─────────────────────────────────────────────────────
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
           child: Container(
@@ -585,7 +309,7 @@ class _AdminCoursesPageState extends State<AdminCoursesPage> {
           ),
         ),
 
-        // ── Course list ──────────────────────────────────────────────────
+        // ── Course list ────────────────────────────────────────────────────
         Expanded(
           child: courses.isEmpty
               ? Center(
@@ -609,81 +333,6 @@ class _AdminCoursesPageState extends State<AdminCoursesPage> {
                 ),
         ),
       ],
-    );
-  }
-
-  // ── Shared sheet helpers ──────────────────────────────────────────────────
-
-  /// Labelled text field for bottom-sheet forms.
-  Widget _sheetField({
-    required String label,
-    required TextEditingController controller,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: _muted,
-            fontSize: 11.5,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.6,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFFF7F8FE),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFE2E0F4)),
-          ),
-          child: TextField(
-            controller: controller,
-            style: const TextStyle(color: _heading, fontSize: 14),
-            decoration: const InputDecoration(
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Pill-shaped status toggle button for the bottom-sheet form.
-  Widget _statusToggle({
-    required String label,
-    required bool selected,
-    required Color activeColor,
-    required Color activeBg,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
-        decoration: BoxDecoration(
-          color: selected ? activeBg : const Color(0xFFF7F8FE),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: selected ? activeColor.withValues(alpha: 0.4) : const Color(0xFFE2E0F4),
-            width: 1.5,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: selected ? activeColor : _muted,
-            fontWeight: FontWeight.w700,
-            fontSize: 13.5,
-          ),
-        ),
-      ),
     );
   }
 }
@@ -725,19 +374,19 @@ class _CourseCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Course thumbnail ───────────────────────────────────────────
+          // ── Course thumbnail ─────────────────────────────────────────────
           ClipRRect(
             borderRadius: BorderRadius.circular(14),
             child: _CourseThumbnail(assetPath: course.imageAsset),
           ),
           const SizedBox(width: 14),
 
-          // ── Course details ─────────────────────────────────────────────
+          // ── Course details ───────────────────────────────────────────────
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Title + status badge in the same row
+                // Title + status badge
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -753,7 +402,6 @@ class _CourseCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 6),
-                    // Status badge
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
@@ -803,8 +451,6 @@ class _CourseCard extends StatelessWidget {
                       ),
                     ),
                     const Spacer(),
-
-                    // Edit button
                     _ActionButton(
                       key: ValueKey('edit-${course.id}'),
                       icon: Icons.edit_outlined,
@@ -813,8 +459,6 @@ class _CourseCard extends StatelessWidget {
                       onTap: onEdit,
                     ),
                     const SizedBox(width: 8),
-
-                    // Delete button
                     _ActionButton(
                       key: ValueKey('delete-${course.id}'),
                       icon: Icons.delete_outline_rounded,
@@ -856,11 +500,7 @@ class _CourseThumbnail extends StatelessWidget {
             color: const Color(0xFFEEECFA),
             borderRadius: BorderRadius.circular(14),
           ),
-          child: const Icon(
-            Icons.menu_book_outlined,
-            color: _purple,
-            size: 32,
-          ),
+          child: const Icon(Icons.menu_book_outlined, color: _purple, size: 32),
         ),
       ),
     );

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:think_lab/admin_courses_page.dart';
+import 'package:think_lab/admin_create_course_page.dart';
 import 'package:think_lab/admin_dashboard.dart';
 
 import 'test_utils.dart';
@@ -14,9 +15,7 @@ void main() {
   Future<void> pumpCoursesPage(WidgetTester tester) async {
     await tester.pumpWidget(
       const MaterialApp(
-        home: Scaffold(
-          body: AdminCoursesPage(),
-        ),
+        home: Scaffold(body: AdminCoursesPage()),
       ),
     );
     await tester.pumpAndSettle();
@@ -75,7 +74,6 @@ void main() {
   testWidgets('Delete button opens confirmation dialog', (tester) async {
     await pumpCoursesPage(tester);
 
-    // Tap the delete button for the first course
     await tester.tap(find.byKey(const ValueKey('delete-c1')));
     await tester.pumpAndSettle();
 
@@ -104,7 +102,6 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('delete-c1')));
     await tester.pumpAndSettle();
 
-    // Tap the red "Delete" button in the dialog
     final deleteBtn = find.descendant(
       of: find.byType(AlertDialog),
       matching: find.text('Delete'),
@@ -115,39 +112,100 @@ void main() {
     expect(find.text('Web Dev Bootcamp'), findsNothing);
   });
 
-  // ── 8. Edit button opens the edit bottom sheet ─────────────────────────────
-  testWidgets('Edit button opens edit sheet with pre-filled title', (tester) async {
+  // ── 8. Edit button navigates to AdminCreateCoursePage (edit mode) ──────────
+  testWidgets('Edit button opens Create/Edit Course page pre-filled', (tester) async {
     await pumpCoursesPage(tester);
 
     await tester.tap(find.byKey(const ValueKey('edit-c1')));
     await tester.pumpAndSettle();
 
+    // Should navigate to AdminCreateCoursePage in edit mode
+    expect(find.byType(AdminCreateCoursePage), findsOneWidget);
     expect(find.text('Edit Course'), findsOneWidget);
-    expect(find.text('Save Changes'), findsOneWidget);
+    // The title field is pre-filled
+    expect(find.text('Save Draft'), findsOneWidget);
   });
 
   // ── 9. Admin Dashboard bottom nav switches to Courses tab ─────────────────
   testWidgets('Courses bottom nav tab opens Manage Courses page', (tester) async {
     await pumpDashboard(tester);
 
-    // Dashboard tab is shown by default
     expect(find.text('Admin Panel'), findsOneWidget);
 
-    // Tap "Courses" in the bottom nav
     await tester.tap(find.text('Courses'));
     await tester.pumpAndSettle();
 
     expect(find.text('Manage Courses'), findsOneWidget);
   });
 
-  // ── 10. Add sheet opens when Add button is tapped ─────────────────────────
-  testWidgets('Add button opens Add New Course sheet', (tester) async {
+  // ── 10. Add button navigates to AdminCreateCoursePage (create mode) ────────
+  testWidgets('Add button opens Create Course page', (tester) async {
     await pumpCoursesPage(tester);
 
     await tester.tap(find.byKey(const ValueKey('add-course-button')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Add New Course'), findsOneWidget);
-    expect(find.text('Add Course'), findsOneWidget);
+    expect(find.byType(AdminCreateCoursePage), findsOneWidget);
+    expect(find.text('Create Course & Quiz'), findsOneWidget);
+    expect(find.text('Save Draft'), findsOneWidget);
+  });
+
+  // ── 11. AdminCreateCoursePage standalone — renders both steps ─────────────
+  testWidgets('AdminCreateCoursePage renders Step 1 and Step 2', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: AdminCreateCoursePage()),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('1. COURSE DETAILS'), findsOneWidget);
+    expect(find.text('STEP 1 OF 3'), findsOneWidget);
+    expect(find.text('2. COURSE MEDIA & LESSONS'), findsOneWidget);
+    expect(find.text('STEP 2 OF 3'), findsOneWidget);
+  });
+
+  // ── 12. Cancel button pops back ────────────────────────────────────────────
+  testWidgets('Cancel button pops the create-course page', (tester) async {
+    await pumpCoursesPage(tester);
+
+    // Navigate to create page
+    await tester.tap(find.byKey(const ValueKey('add-course-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AdminCreateCoursePage), findsOneWidget);
+
+    // Tap Cancel
+    await tester.tap(find.byKey(const ValueKey('cancel-button')));
+    await tester.pumpAndSettle();
+
+    // Should be back on the courses list
+    expect(find.text('Manage Courses'), findsOneWidget);
+    expect(find.byType(AdminCreateCoursePage), findsNothing);
+  });
+
+  // ── 13. Upload zone is present ─────────────────────────────────────────────
+  testWidgets('Upload zone and uploaded items are shown', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: AdminCreateCoursePage()),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('upload-zone')), findsOneWidget);
+    expect(find.text('Upload Course Video / Syllabus'), findsOneWidget);
+    expect(find.text('UPLOADED ITEMS (2)'), findsOneWidget);
+  });
+
+  // ── 14. Save Draft without title shows validation feedback ────────────────
+  testWidgets('Save Draft without title does not pop (shows snack)', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: AdminCreateCoursePage()),
+    );
+    await tester.pumpAndSettle();
+
+    // Clear title (it starts empty; just tap Save Draft)
+    await tester.tap(find.byKey(const ValueKey('save-draft-button')));
+    await tester.pump();
+
+    // SnackBar validation message appears
+    expect(find.text('Please enter a course title.'), findsOneWidget);
   });
 }
