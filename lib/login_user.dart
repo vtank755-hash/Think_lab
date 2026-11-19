@@ -332,7 +332,7 @@ class _LoginPageState extends State<LoginPage> {
                                       TextSpan(
                                         text: 'Admin Login',
                                         style: TextStyle(
-                                          color: _primary,
+                                          color: Colors.blue,
                                           fontSize: 16,
                                           fontWeight: FontWeight.w700,
                                         ),
