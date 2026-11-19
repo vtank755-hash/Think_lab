@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:think_lab/admin_dashboard.dart';
 import 'package:think_lab/admin_login.dart';
-import 'package:think_lab/index.dart';
 import 'package:think_lab/login_user.dart';
 import 'package:think_lab/session.dart';
 
@@ -85,8 +85,23 @@ void main() {
     await tester.tap(find.text('Login to Dashboard'));
     await tester.pumpAndSettle();
 
-    // Should navigate to HomePage / Dashboard
-    expect(find.byType(HomePage), findsOneWidget);
+    // Should navigate to AdminDashboardPage
+    expect(find.byType(AdminDashboardPage), findsOneWidget);
+    expect(find.text('Admin Panel'), findsOneWidget);
+    expect(find.text('WELCOME BACK,'), findsOneWidget);
+    expect(find.text('24.8k'), findsOneWidget);
+    expect(find.text('Total Users'), findsOneWidget);
+    expect(find.text('342'), findsOneWidget);
+    expect(find.text('Total Courses'), findsOneWidget);
+    expect(find.text('18.2k'), findsOneWidget);
+    expect(find.text('Enrollments'), findsOneWidget);
+    expect(find.text('₹12.8M'), findsOneWidget);
+    expect(find.text('Total Revenue'), findsOneWidget);
+    expect(find.text('Quick Actions'), findsOneWidget);
+    expect(find.text('Add'), findsOneWidget);
+    expect(find.text('Users'), findsWidgets);
+    expect(find.text('Orders'), findsWidgets);
+    expect(find.text('Quiz'), findsOneWidget);
     expect(currentUser.value, 'admin@learnhub.in');
   });
 }

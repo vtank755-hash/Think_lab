@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'admin_dashboard.dart';
 import 'index.dart';
 import 'session.dart';
 
@@ -82,7 +83,7 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
       );
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const HomePage()),
+        MaterialPageRoute(builder: (_) => const AdminDashboardPage()),
       );
     }
   }
