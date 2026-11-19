@@ -49,38 +49,51 @@ void main() {
     expect(find.text('VISIBILITY'), findsOneWidget);
   });
 
-  // ── 2. Page renders upload area and uploaded items ─────────────────────────
-  testWidgets('CreateCoursePage renders media upload section and initial items', (tester) async {
+  // ── 2. Page renders upload area (new course has no pre-loaded files) ─────────
+  testWidgets('CreateCoursePage renders media upload section with empty items for new course', (tester) async {
     await pumpCreateCourse(tester);
 
     expect(find.text('Upload Course Video / Syllabus'), findsOneWidget);
     expect(find.text('+ Browse Files'), findsOneWidget);
-    expect(find.text('Lesson_01_Intro_Design_Systems.mp4'), findsOneWidget);
-    expect(find.text('Syllabus_Tokens_Framework.pdf'), findsOneWidget);
-    expect(find.text('100% Uploaded'), findsOneWidget);
-    expect(find.text('Ready'), findsOneWidget);
+    // New course: no pre-loaded resources
+    expect(find.text('Lesson_01_Intro_Design_Systems.mp4'), findsNothing);
+    expect(find.text('Syllabus_Tokens_Framework.pdf'), findsNothing);
+    expect(find.text('UPLOADED ITEMS (0)'), findsOneWidget);
     expect(find.text('+ Upload Additional Resource'), findsOneWidget);
   });
 
   // ── 3. Add resource via Browse Files / Additional Resource ─────────────────
-  testWidgets('Tapping upload resource adds a new resource item', (tester) async {
+  testWidgets('Tapping upload resource adds a new resource item (starts empty for new course)', (tester) async {
     await pumpCreateCourse(tester);
 
-    expect(find.text('UPLOADED ITEMS (2)'), findsOneWidget);
+    // New course starts with 0 items
+    expect(find.text('UPLOADED ITEMS (0)'), findsOneWidget);
 
     final btn = find.byKey(const ValueKey('upload-additional-btn'));
     await tester.ensureVisible(btn);
     await tester.tap(btn);
     await tester.pumpAndSettle();
 
-    expect(find.text('UPLOADED ITEMS (3)'), findsOneWidget);
+    expect(find.text('UPLOADED ITEMS (1)'), findsOneWidget);
   });
 
-  // ── 4. Delete resource removes item ────────────────────────────────────────
-  testWidgets('Tapping trash icon deletes an uploaded resource', (tester) async {
-    await pumpCreateCourse(tester);
+  // ── 4. Edit mode: uploaded items are pre-filled, delete removes item ────────
+  testWidgets('Edit mode: pre-filled resources and delete removes one item', (tester) async {
+    final course = AdminCourse(
+      id: 'c_edit_del',
+      title: 'Test Course',
+      instructor: 'Test Instructor',
+      students: '100 students',
+      price: '₹999',
+      imageAsset: 'assets/images/courses/web_dev.jpg',
+      status: CourseStatus.active,
+    );
 
+    await pumpCreateCourse(tester, initialCourse: course);
+
+    // Edit mode: starts with 2 demo resource files
     expect(find.text('Lesson_01_Intro_Design_Systems.mp4'), findsOneWidget);
+    expect(find.text('UPLOADED ITEMS (2)'), findsOneWidget);
 
     final trashBtn = find.byKey(const ValueKey('delete-resource-res_1'));
     await tester.ensureVisible(trashBtn);
@@ -109,7 +122,7 @@ void main() {
     await pumpCreateCourse(tester, initialCourse: course);
 
     expect(find.text('Edit Course & Quiz'), findsOneWidget);
-    expect(find.text('Save Changes'), findsOneWidget);
+    expect(find.text('Update Course'), findsOneWidget);
     expect(find.text('Advanced Flutter Architecture'), findsOneWidget);
     expect(find.text('₹ 2,499'), findsOneWidget);
     expect(find.text('Master clean architecture and testing.'), findsOneWidget);

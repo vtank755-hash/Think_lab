@@ -124,7 +124,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Edit Course & Quiz'), findsOneWidget);
-    expect(find.text('Save Changes'), findsOneWidget);
+    expect(find.text('Update Course'), findsOneWidget);
   });
 
   // ── 9. Admin Dashboard bottom nav switches to Courses tab ─────────────────
@@ -149,7 +149,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Create Course & Quiz'), findsOneWidget);
-    expect(find.text('Save Draft'), findsOneWidget);
+    expect(find.text('Create Course'), findsOneWidget);
   });
 
   // ── 11. Tapping Total Courses stat card opens Manage Courses ──────────────
@@ -206,7 +206,8 @@ void main() {
     expect(find.text('Create Course & Quiz'), findsOneWidget);
     expect(find.text('1. COURSE DETAILS'), findsOneWidget);
     expect(find.text('2. COURSE MEDIA & LESSONS'), findsOneWidget);
-    expect(find.text('Save Draft'), findsOneWidget);
+    expect(find.text('Save Draft'), findsNothing);
+    expect(find.text('Create Course'), findsOneWidget);
 
     // 5. Back button returns to Manage Courses
     final backBtn = find.byKey(const ValueKey('create-course-back-btn'));

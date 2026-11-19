@@ -80,17 +80,11 @@ class _CreateCourseQuizPageState extends State<CreateCourseQuizPage> {
   void initState() {
     super.initState();
     final c = widget.initialCourse;
-    _titleCtrl = TextEditingController(
-      text: c?.title ?? 'UX Design Systems & Motion Mastery',
-    );
-    _descCtrl = TextEditingController(
-      text:
-          c?.description ??
-          'Master comprehensive design systems from token management to multi-brand components and interactive micro-interactions.',
-    );
-    _priceCtrl = TextEditingController(
-      text: c?.price ?? '₹ 4,999',
-    );
+    // For new course (c == null), all fields start empty.
+    // For edit (c != null), pre-fill from the selected course.
+    _titleCtrl = TextEditingController(text: c?.title ?? '');
+    _descCtrl = TextEditingController(text: c?.description ?? '');
+    _priceCtrl = TextEditingController(text: c?.price ?? '');
 
     if (c?.category != null && _categories.contains(c!.category)) {
       _category = c.category!;
@@ -102,22 +96,27 @@ class _CreateCourseQuizPageState extends State<CreateCourseQuizPage> {
       _visibility = c.visibility!;
     }
 
-    _resources = [
-      UploadedResource(
-        id: 'res_1',
-        name: 'Lesson_01_Intro_Design_Systems.mp4',
-        size: '142 MB',
-        statusText: '100% Uploaded',
-        isVideo: true,
-      ),
-      UploadedResource(
-        id: 'res_2',
-        name: 'Syllabus_Tokens_Framework.pdf',
-        size: '3.4 MB',
-        statusText: 'Ready',
-        isVideo: false,
-      ),
-    ];
+    // Show demo uploaded files only when editing an existing course.
+    // New course starts with no uploaded resources.
+    _resources =
+        c != null
+            ? [
+              UploadedResource(
+                id: 'res_1',
+                name: 'Lesson_01_Intro_Design_Systems.mp4',
+                size: '142 MB',
+                statusText: '100% Uploaded',
+                isVideo: true,
+              ),
+              UploadedResource(
+                id: 'res_2',
+                name: 'Syllabus_Tokens_Framework.pdf',
+                size: '3.4 MB',
+                statusText: 'Ready',
+                isVideo: false,
+              ),
+            ]
+            : [];
   }
 
   @override
@@ -836,7 +835,7 @@ class _CreateCourseQuizPageState extends State<CreateCourseQuizPage> {
                 ],
               ),
               child: Text(
-                isEditing ? 'Save Changes' : 'Save Draft',
+                isEditing ? 'Update Course' : 'Create Course',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 14,
