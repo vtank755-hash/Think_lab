@@ -7,6 +7,7 @@ import 'course_details.dart';
 import 'searches.dart';
 import 'my_learning_page.dart';
 import 'open_lesson.dart';
+import 'profile_page.dart';
 import 'progress.dart';
 import 'session.dart';
 import 'widgets/nav_bar.dart';
@@ -98,7 +99,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   /// Tab 0 = home, tab 1 = My Learning, tab 2 = the Wishlist screen, tab 3
-  /// still shows its placeholder.
+  /// = the Profile screen.
   Widget _body() {
     if (_tab == 0) return _home();
     if (_tab == 1) {
@@ -106,6 +107,11 @@ class _HomePageState extends State<HomePage> {
     }
     if (_tab == 2) {
       return WishlistPage(onBack: () => setState(() => _tab = 0));
+    }
+    if (_tab == 3) {
+      return ProfilePage(
+        onSelectTab: (tabIndex) => setState(() => _tab = tabIndex),
+      );
     }
     return _otherTab();
   }
@@ -234,22 +240,25 @@ class _HomePageState extends State<HomePage> {
         ),
         const SizedBox(width: 12),
         // Expanded = greeting fills the free space between avatar and icons.
-        const Expanded(
+        Expanded(
           // Column = "Good morning," line above the user's name.
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 'Good morning,',
                 style: TextStyle(color: _grey, fontSize: 13),
               ),
-              SizedBox(height: 2),
-              Text(
-                'Aarav Sharma',
-                style: TextStyle(
-                  color: _title,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
+              const SizedBox(height: 2),
+              ValueListenableBuilder<UserProfile>(
+                valueListenable: userProfile,
+                builder: (context, profile, _) => Text(
+                  profile.name,
+                  style: const TextStyle(
+                    color: _title,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],

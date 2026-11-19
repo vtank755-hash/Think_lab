@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'certificate_page.dart';
 import 'course.dart';
 import 'open_lesson.dart';
 import 'progress.dart';
@@ -144,10 +145,16 @@ class _MyLearningPageState extends State<MyLearningPage> {
     );
   }
 
-  /// Demo certificate — the app has no certificate storage yet.
+  /// Opens the Certificate screen for the completed course.
   void _certificate(Course course) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Certificate for ${course.title} (demo)')),
+    );
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CertificatePage(courseId: course.id),
+      ),
     );
   }
 

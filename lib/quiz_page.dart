@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'certificate_page.dart';
 import 'quiz.dart';
 import 'quiz_results.dart';
 
@@ -589,30 +590,89 @@ class _QuizPageState extends State<QuizPage> {
                 ),
               ),
               const SizedBox(height: 26),
-              SizedBox(
-                width: double.infinity,
-                // FilledButton = continue if passed, retry if failed.
-                child: FilledButton(
-                  // Passed (75%+) -> Go back to the course.
-                  // Failed (< 75%) -> Restart the quiz from question 1.
-                  onPressed: passed ? () => Navigator.pop(context) : _retry,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: _purple,
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  child: Text(
-                    passed ? 'Continue' : 'Retry Quiz',
-                    style: const TextStyle(
+              if (passed) ...[
+                // View Certificate button
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CertificatePage(
+                            courseId: widget.courseId,
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(
+                      Icons.workspace_premium_rounded,
                       color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
+                      size: 20,
+                    ),
+                    label: const Text(
+                      'View Certificate',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _purple,
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                     ),
                   ),
                 ),
-              ),
+                const SizedBox(height: 12),
+                // Continue button
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _purple,
+                      side: const BorderSide(color: _purple, width: 1.5),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: const Text(
+                      'Continue',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ] else ...[
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: _retry,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _purple,
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: const Text(
+                      'Retry Quiz',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),

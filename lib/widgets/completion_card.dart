@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../certificate_page.dart';
 import '../course.dart';
 import '../quiz.dart';
 import '../quiz_page.dart';
@@ -82,7 +83,41 @@ class CompletionCard extends StatelessWidget {
               height: 1.5,
             ),
           ),
-          if (!passed) ...[
+          if (passed) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                // Quiz passed -> View and download the course certificate.
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CertificatePage(courseId: course.id),
+                  ),
+                ),
+                icon: const Icon(
+                  Icons.workspace_premium_rounded,
+                  color: Colors.white,
+                  size: 18,
+                ),
+                label: const Text(
+                  'View Certificate',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                style: FilledButton.styleFrom(
+                  backgroundColor: _purple,
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
+            ),
+          ] else ...[
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
