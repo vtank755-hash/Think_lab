@@ -203,8 +203,8 @@ class _AdminCoursesPageState extends State<AdminCoursesPage> {
 
   // ── Add course ────────────────────────────────────────────────────────────
 
-  /// Opens the CreateCoursePage to add a new course.
-  void _openAddSheet() async {
+  /// Opens the CreateCoursePage as a full-screen page to create a new course.
+  void _openCreateCoursePage() async {
     final newCourse = await Navigator.push<AdminCourse>(
       context,
       MaterialPageRoute(
@@ -262,7 +262,7 @@ class _AdminCoursesPageState extends State<AdminCoursesPage> {
                 child: InkWell(
                   key: const ValueKey('add-course-button'),
                   borderRadius: BorderRadius.circular(20),
-                  onTap: _openAddSheet,
+                  onTap: _openCreateCoursePage,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 18,
