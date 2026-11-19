@@ -301,21 +301,45 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         const SizedBox(height: 32),
                         Center(
-                          child: GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const AdminLoginPage(),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              key: const ValueKey('admin-login-button'),
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const AdminLoginPage(),
+                                  ),
+                                );
+                              },
+                              child: const Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 12,
                                 ),
-                              );
-                            },
-                            child: const Text(
-                              'Admin? Admin Login',
-                              style: TextStyle(
-                                color: _muted,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
+                                child: Text.rich(
+                                  TextSpan(
+                                    text: 'Admin? ',
+                                    style: TextStyle(
+                                      color: _muted,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    children: [
+                                      TextSpan(
+                                        text: 'Admin Login',
+                                        style: TextStyle(
+                                          color: _primary,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ),
                           ),
