@@ -71,13 +71,14 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: AdminLoginPage()));
     await tester.pumpAndSettle();
 
-    // Tapping without password triggers validation error
+    // Clear password to test validation error
+    final passwordField = find.byType(TextFormField).at(1);
+    await tester.enterText(passwordField, '');
     await tester.tap(find.text('Login to Dashboard'));
     await tester.pumpAndSettle();
     expect(find.text('Please enter password'), findsOneWidget);
 
     // Enter admin password
-    final passwordField = find.byType(TextFormField).at(1);
     await tester.enterText(passwordField, 'admin123');
     await tester.pumpAndSettle();
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+import 'admin_dashboard.dart';
 import 'admin_login.dart';
 import 'register_user.dart';
 import 'index.dart';
@@ -85,7 +86,15 @@ class _LoginPageState extends State<LoginPage> {
     if (_formKey.currentState?.validate() ?? false) {
       // The typed e-mail becomes the current user id: every wishlist and
       // every purchase in the app is stored against THIS user + course id.
-      signIn(_email.text);
+      final email = _email.text.trim();
+      signIn(email);
+      if (email.toLowerCase().contains('admin')) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const AdminDashboardPage()),
+        );
+        return;
+      }
       // Login successful -> Go to the Home page.
       Navigator.pushReplacement(
         context,

@@ -23,7 +23,7 @@ class AdminLoginPage extends StatefulWidget {
 class _AdminLoginPageState extends State<AdminLoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController(text: 'admin@learnhub.in');
-  final _passwordController = TextEditingController();
+  final _passwordController = TextEditingController(text: 'admin123');
   bool _obscurePassword = true;
 
   @override
