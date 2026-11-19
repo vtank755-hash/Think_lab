@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'admin_courses_page.dart';
 import 'admin_login.dart';
 import 'login_user.dart';
 import 'session.dart';
@@ -82,8 +83,21 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _pageBg,
-      body: SafeArea(
-        child: SingleChildScrollView(
+      body: SafeArea(child: _buildBody()),
+      bottomNavigationBar: _buildBottomNav(),
+    );
+  }
+
+  /// Returns the page body for the currently selected admin nav tab.
+  Widget _buildBody() {
+    switch (_currentTab) {
+      // ── Tab 1: Manage Courses ────────────────────────────────────────────
+      case 1:
+        return const AdminCoursesPage();
+
+      // ── Tab 0: Dashboard (default) ───────────────────────────────────────
+      default:
+        return SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -95,10 +109,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               _buildQuickActions(),
             ],
           ),
-        ),
-      ),
-      bottomNavigationBar: _buildBottomNav(),
-    );
+        );
+    }
   }
 
   Widget _buildHeader() {
