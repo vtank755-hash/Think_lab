@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+import 'admin_login.dart';
 import 'register_user.dart';
 import 'index.dart';
 import 'session.dart';
@@ -299,13 +300,23 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         ),
                         const SizedBox(height: 32),
-                        const Center(
-                          child: Text(
-                            'Admin? Admin Login',
-                            style: TextStyle(
-                              color: _muted,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
+                        Center(
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const AdminLoginPage(),
+                                ),
+                              );
+                            },
+                            child: const Text(
+                              'Admin? Admin Login',
+                              style: TextStyle(
+                                color: _muted,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
                         ),
