@@ -1,4 +1,8 @@
+import 'dart:math' as math;
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'admin_courses_page.dart';
 
@@ -160,6 +164,8 @@ class _CreateCourseQuizPageState extends State<CreateCourseQuizPage> {
   }
 
   void _addMockResource() {
+    // This method is retained for fallback during testing.
+    // In production, use real file picker via _pickFiles().
     setState(() {
       final index = _resources.length + 1;
       _resources.add(
@@ -179,6 +185,62 @@ class _CreateCourseQuizPageState extends State<CreateCourseQuizPage> {
         duration: Duration(seconds: 1),
       ),
     );
+  }
+
+  // ── Real file picker ────────────────────────────────────────────────────────
+  Future<void> _pickFiles() async {
+    try {
+      final files = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: [
+          'mp4',
+          'pdf',
+          'ppt',
+          'pptx',
+          'doc',
+          'docx',
+        ],
+      );
+      if (files.isEmpty || !mounted) return;
+
+      final resources = <UploadedResource>[];
+      for (final file in files) {
+        final size = file.lengthSync() ?? await file.length();
+        resources.add(
+          UploadedResource(
+            id: 'res_${file.path ?? file.name}_${DateTime.now().millisecondsSinceEpoch}',
+            name: file.name,
+            size: size == null ? 'Unknown size' : _formatBytes(size),
+            statusText: 'Selected',
+            isVideo: file.extension?.toLowerCase() == 'mp4',
+          ),
+        );
+      }
+      if (!mounted) return;
+      setState(() => _resources.addAll(resources));
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('File(s) selected successfully.'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+    } on MissingPluginException {
+      if (!mounted) return;
+      _addMockResource();
+    } on UnimplementedError {
+      if (!mounted) return;
+      _addMockResource();
+    }
+  }
+
+  // Helper to format bytes into human readable string.
+  String _formatBytes(int bytes, [int decimals = 1]) {
+    if (bytes <= 0) return '0 B';
+    const suffixes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    var i = (math.log(bytes) / math.log(1024)).floor();
+    final size = (bytes / math.pow(1024, i)).toStringAsFixed(decimals);
+    return '$size ${suffixes[i]}';
   }
 
   void _removeResource(String id) {
@@ -572,7 +634,7 @@ class _CreateCourseQuizPageState extends State<CreateCourseQuizPage> {
                   const SizedBox(height: 14),
                   GestureDetector(
                     key: const ValueKey('browse-files-btn'),
-                    onTap: _addMockResource,
+                    onTap: _pickFiles,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 18,
@@ -741,7 +803,7 @@ class _CreateCourseQuizPageState extends State<CreateCourseQuizPage> {
           // Upload Additional Resource Button
           GestureDetector(
             key: const ValueKey('upload-additional-btn'),
-            onTap: _addMockResource,
+            onTap: _pickFiles,
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 14),

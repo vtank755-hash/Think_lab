@@ -37,6 +37,7 @@ dependencies:
 
   # Renders the demo UPI QR code on the payment page.
   qr_flutter: ^4.1.0
+  file_picker: ^13.4.0
 
 dev_dependencies:
   flutter_test:

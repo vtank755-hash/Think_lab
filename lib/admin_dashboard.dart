@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'admin_category.dart';
 import 'admin_courses_page.dart';
+import 'admin_manega_user.dart';
 import 'admin_login.dart';
 import 'create_course_quiz_page.dart';
 import 'login_user.dart';
@@ -103,6 +105,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       case 1:
         return const AdminCoursesPage();
 
+      // ── Tab 2: Manage Users ──────────────────────────────────────────────
+      case 2:
+        return const AdminManageUsersPage();
+
       // ── Tab 0: Dashboard (default) ───────────────────────────────────────
       default:
         return SingleChildScrollView(
@@ -160,10 +166,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 height: 48,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: const Color(0xFFE2E0F4),
-                    width: 2,
-                  ),
+                  border: Border.all(color: const Color(0xFFE2E0F4), width: 2),
                   color: Colors.white,
                 ),
                 child: ClipOval(
@@ -364,6 +367,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         ),
         const SizedBox(height: 16),
         Row(
+          key: const ValueKey('admin-quick-actions'),
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             _buildActionItem(
@@ -375,16 +379,24 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const CreateCourseQuizPage()),
+                  MaterialPageRoute(
+                    builder: (_) => const CreateCourseQuizPage(),
+                  ),
                 );
               },
             ),
             _buildActionItem(
-              icon: Icons.groups_outlined,
-              iconColor: const Color(0xFF7E3AF2),
-              bgColor: const Color(0xFFF3EDFA),
-              label: 'Users',
-              onTap: () => _showActionFeedback('Manage Users'),
+              key: const ValueKey('quick-action-categories'),
+              icon: Icons.category_outlined,
+              iconColor: const Color(0xFF6B45F0),
+              bgColor: const Color(0xFFEDEAFE),
+              label: 'Category',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AdminCategoryPage()),
+                );
+              },
             ),
             _buildActionItem(
               icon: Icons.receipt_long_outlined,
@@ -500,7 +512,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   }
                 },
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 8,
+                  ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [

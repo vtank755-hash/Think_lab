@@ -80,7 +80,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('delete-c1')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Delete Course'), findsOneWidget);
+    expect(find.text('Delete course?'), findsOneWidget);
     expect(find.text('Delete'), findsOneWidget);
     expect(find.text('Cancel'), findsOneWidget);
   });
@@ -92,9 +92,10 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('delete-c1')));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Cancel'));
+    await tester.tap(find.byKey(const ValueKey('cancel-course-delete')));
     await tester.pumpAndSettle();
 
+    expect(find.text('Manage Courses'), findsOneWidget);
     expect(find.text('Web Dev Bootcamp'), findsOneWidget);
   });
 
@@ -105,12 +106,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('delete-c1')));
     await tester.pumpAndSettle();
 
-    // Tap the red "Delete" button in the dialog
-    final deleteBtn = find.descendant(
-      of: find.byType(AlertDialog),
-      matching: find.text('Delete'),
-    );
-    await tester.tap(deleteBtn);
+    await tester.tap(find.byKey(const ValueKey('confirm-course-delete')));
     await tester.pumpAndSettle();
 
     expect(find.text('Web Dev Bootcamp'), findsNothing);

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'admin_course_delete.dart';
 import 'create_course_quiz_page.dart';
 
 // ─── Shared palette (kept in sync with admin_dashboard.dart) ───────────────
@@ -126,55 +127,15 @@ class _AdminCoursesPageState extends State<AdminCoursesPage> {
   // ── Delete course ─────────────────────────────────────────────────────────
 
   /// Shows a confirmation dialog, then removes [course] from [_allCourses].
-  void _confirmDelete(AdminCourse course) {
-    showDialog(
+  Future<void> _confirmDelete(AdminCourse course) async {
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            title: const Text(
-              'Delete Course',
-              style: TextStyle(color: _heading, fontWeight: FontWeight.w800),
-            ),
-            content: Text(
-              'Are you sure you want to delete "${course.title}"? This cannot be undone.',
-              style: const TextStyle(
-                color: Color(0xFF6F6B92),
-                fontSize: 14,
-                height: 1.5,
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text(
-                  'Cancel',
-                  style: TextStyle(color: _purple),
-                ),
-              ),
-              FilledButton(
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  setState(() => _allCourses.remove(course));
-                  _showSnack('${course.title} deleted.');
-                },
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFFF04438),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text(
-                  'Delete',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ],
-          ),
+      builder: (_) => const AdminCourseDeleteDialog(),
     );
+    if (!mounted || confirmed != true) return;
+
+    setState(() => _allCourses.remove(course));
+    _showSnack('${course.title} deleted.');
   }
 
   // ── Edit course ───────────────────────────────────────────────────────────
