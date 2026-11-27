@@ -9,9 +9,9 @@ import 'session.dart';
 // Per-user quiz results and the two-stage course completion rule.
 //
 // Stage 1 — every lesson completed      → "course learning completed"
-// Stage 2 — final quiz score >= 75%     → "course successfully completed"
+// Stage 2 — configured final quiz threshold reached → course completed
 //
-// Results are stored per USER + COURSE (+ the attempt number), exactly like
+// Results are stored per USER + COURSE + QUIZ (+ the attempt number), exactly like
 // the cart, wishlist and progress stores, so User A's result never shows up
 // for User B:
 //
@@ -33,18 +33,19 @@ class QuizAttempt {
 
   /// Total questions, e.g. `20`.
   final int total;
+  final int passingPercentage;
 
   const QuizAttempt({
     required this.attempt,
     required this.score,
     required this.total,
+    this.passingPercentage = quizPassingPercentage,
   });
 
   /// `80` for 16 / 20 — calculated, never stored as a fixed number.
   int get percentage => total <= 0 ? 0 : ((score / total) * 100).round();
 
-  /// Passes at exactly 75% and above.
-  bool get passed => percentage >= quizPassingPercentage;
+  bool get passed => percentage >= passingPercentage;
 }
 
 /// `userId -> (courseId -> attempts of that course)`.
@@ -59,13 +60,27 @@ ValueNotifier<Map<String, List<QuizAttempt>>> quizAttemptsOf(String userId) =>
     );
 
 /// Every attempt this user made for [courseId], oldest first.
-List<QuizAttempt> quizAttemptsFor(String courseId, {String? userId}) =>
-    quizAttemptsOf(userId ?? currentUser.value).value[courseId] ??
+String _attemptKey(String courseId, String? quizId) =>
+    quizId == null ? courseId : '$courseId::$quizId';
+
+List<QuizAttempt> quizAttemptsFor(
+  String courseId, {
+  String? userId,
+  String? quizId,
+}) =>
+    quizAttemptsOf(userId ?? currentUser.value).value[_attemptKey(
+      courseId,
+      quizId,
+    )] ??
     const <QuizAttempt>[];
 
 /// The latest attempt (the current result) for [courseId], or `null`.
-QuizAttempt? latestQuizAttempt(String courseId, {String? userId}) {
-  final attempts = quizAttemptsFor(courseId, userId: userId);
+QuizAttempt? latestQuizAttempt(
+  String courseId, {
+  String? userId,
+  String? quizId,
+}) {
+  final attempts = quizAttemptsFor(courseId, userId: userId, quizId: quizId);
   return attempts.isEmpty ? null : attempts.last;
 }
 
@@ -73,26 +88,38 @@ QuizAttempt? latestQuizAttempt(String courseId, {String? userId}) {
 bool isQuizPassed(String courseId, {String? userId}) =>
     quizAttemptsFor(courseId, userId: userId).any((a) => a.passed);
 
+/// Clears attempts for a quiz after an admin changes or deletes it.
+void resetQuizAttemptsForCourse(String courseId, {String? quizId}) {
+  final key = _attemptKey(courseId, quizId);
+  for (final notifier in _attemptsByUser.values) {
+    if (!notifier.value.containsKey(key)) continue;
+    final next = Map<String, List<QuizAttempt>>.of(notifier.value)..remove(key);
+    notifier.value = next;
+  }
+}
+
 /// Saves one attempt (every attempt is kept separately) and returns it.
 QuizAttempt saveQuizAttempt(
   String courseId, {
   required int score,
   required int total,
   String? userId,
+  String? quizId,
+  int passingPercentage = quizPassingPercentage,
 }) {
   final uid = userId ?? currentUser.value;
   final notifier = quizAttemptsOf(uid);
   final next = Map<String, List<QuizAttempt>>.of(notifier.value);
-  final attempts = List<QuizAttempt>.of(
-    next[courseId] ?? const <QuizAttempt>[],
-  );
+  final key = _attemptKey(courseId, quizId);
+  final attempts = List<QuizAttempt>.of(next[key] ?? const <QuizAttempt>[]);
   final attempt = QuizAttempt(
     attempt: attempts.length + 1,
     score: score,
     total: total,
+    passingPercentage: passingPercentage,
   );
   attempts.add(attempt);
-  next[courseId] = attempts;
+  next[key] = attempts;
   notifier.value = next;
   return attempt;
 }
@@ -109,7 +136,7 @@ bool isCourseLessonsComplete(Course course, {String? userId}) {
   return total > 0 && completedInCourse(course, userId: userId) >= total;
 }
 
-/// STAGE 2 — lessons completed AND the final quiz passed (>= 75%).
+/// STAGE 2 — lessons completed AND the final quiz passed its configured score.
 ///
 /// The course only gets its final successful status when BOTH stages hold.
 bool isCourseFullyCompleted(Course course, {String? userId}) =>

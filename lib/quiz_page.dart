@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'certificate_page.dart';
@@ -19,20 +21,17 @@ const Color quizSelectedOptionBg = Color(0xFFF1EDFF);
 /// Key of answer option [index] (A = 0 … D = 3) — exported for tests.
 ValueKey<String> quizOptionKey(int index) => ValueKey('quiz-option-$index');
 
-/// The **Module Quiz** screen — the final 20-question quiz of ONE course.
+/// The student quiz screen for one selected course quiz.
 ///
 /// ```dart
 /// QuizPage(courseId: 'c5')   // → 20 Python questions of c5_final_quiz
 /// ```
 ///
-/// * questions are loaded by COURSE ID from `quiz.dart` (never written in the
-///   UI, never shared between courses);
-/// * `Question N of 20` and the `N%` progress bar are calculated from the
-///   current index and the real question count;
+/// * questions are loaded from the quiz catalog by quiz and course id;
+/// * progress is calculated from the real question count;
 /// * one answer per question, kept when moving Previous / Next;
-/// * `Submit` calculates the real score; **75% or above passes**, below that
-///   the result screen offers `Retry Quiz` (attempt restarted from question 1);
-/// * every attempt is stored per user + course in `quiz_results.dart`.
+/// * `Submit` calculates the real score using the quiz's passing threshold;
+/// * attempts are stored per user and per quiz.
 // =====================================================
 // UI STRUCTURE (SCREEN VIEW)
 //  1. Back button              -> GestureDetector + Icon (tap -> previous page)
@@ -53,14 +52,15 @@ ValueKey<String> quizOptionKey(int index) => ValueKey('quiz-option-$index');
 // COURSE QUIZ PAGE (StatefulWidget)
 // StatefulWidget is used here because the screen rebuilds on every answer
 // tap and every Previous / Next move.
-// Shows 20 questions for the selected course.
+// Shows the selected quiz's questions and quiz-specific settings.
 // Layout: Scaffold -> Column (header + progress bar + question + buttons).
 // =====================================================
 class QuizPage extends StatefulWidget {
   /// The course whose quiz should be loaded.
   final String courseId;
+  final String? quizId;
 
-  const QuizPage({super.key, required this.courseId});
+  const QuizPage({super.key, required this.courseId, this.quizId});
 
   @override
   State<QuizPage> createState() => _QuizPageState();
@@ -75,6 +75,8 @@ class _QuizPageState extends State<QuizPage> {
   int _index = 0;
   // Filled after Submit — the saved attempt of this user.
   QuizAttempt? _result;
+  Timer? _timer;
+  int? _remainingSeconds;
   // Scrolls the question list back to the top on every question change.
   final ScrollController _scroll = ScrollController();
 
@@ -82,17 +84,41 @@ class _QuizPageState extends State<QuizPage> {
   void initState() {
     super.initState();
     // Loaded dynamically from the CURRENT course id.
-    _quiz = quizForCourse(widget.courseId);
+    final selectedQuiz = widget.quizId == null
+        ? quizForCourse(widget.courseId)
+        : courseQuizById(widget.quizId!);
+    _quiz = selectedQuiz?.courseId == widget.courseId ? selectedQuiz : null;
     _answers = List<int?>.filled(_quiz?.questions.length ?? 0, null);
+    final minutes = _quiz?.timeLimitMinutes ?? 0;
+    if (minutes > 0) {
+      _remainingSeconds = minutes * 60;
+      _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (!mounted || _result != null) return;
+        if (_remainingSeconds == 1) {
+          _submit();
+        } else {
+          setState(() => _remainingSeconds = _remainingSeconds! - 1);
+        }
+      });
+    }
   }
 
   @override
   void dispose() {
     _scroll.dispose();
+    _timer?.cancel();
     super.dispose();
   }
 
   int get _total => _quiz?.questions.length ?? 0;
+  String? get _resultQuizId => _quiz?.isFinal == true ? null : _quiz?.id;
+
+  bool get _attemptLimitReached {
+    final quiz = _quiz;
+    if (quiz == null || quiz.maxAttempts <= 0) return false;
+    return quizAttemptsFor(quiz.courseId, quizId: _resultQuizId).length >=
+        quiz.maxAttempts;
+  }
 
   /// `5%` on question 1, `50%` on question 10, `100%` on question 20.
   int get _percent => _total == 0 ? 0 : ((_index + 1) * 100) ~/ _total;
@@ -121,8 +147,17 @@ class _QuizPageState extends State<QuizPage> {
     for (var i = 0; i < quiz.questions.length; i++) {
       if (_answers[i] == quiz.questions[i].correctIndex) score++;
     }
-    saveQuizAttempt(quiz.courseId, score: score, total: quiz.questions.length);
-    setState(() => _result = latestQuizAttempt(quiz.courseId));
+    _timer?.cancel();
+    saveQuizAttempt(
+      quiz.courseId,
+      score: score,
+      total: quiz.questions.length,
+      quizId: _resultQuizId,
+      passingPercentage: quiz.passingPercentage,
+    );
+    setState(
+      () => _result = latestQuizAttempt(quiz.courseId, quizId: _resultQuizId),
+    );
   }
 
   /// Retry: question 1, fresh (empty) answers, same course quiz.
@@ -132,7 +167,20 @@ class _QuizPageState extends State<QuizPage> {
       _index = 0;
       _answers = List<int?>.filled(_total, null);
       _result = null;
+      final minutes = _quiz?.timeLimitMinutes ?? 0;
+      _remainingSeconds = minutes > 0 ? minutes * 60 : null;
     });
+    if ((_quiz?.timeLimitMinutes ?? 0) > 0) {
+      _timer?.cancel();
+      _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (!mounted || _result != null) return;
+        if (_remainingSeconds == 1) {
+          _submit();
+        } else {
+          setState(() => _remainingSeconds = _remainingSeconds! - 1);
+        }
+      });
+    }
     if (_scroll.hasClients) _scroll.jumpTo(0);
   }
 
@@ -140,10 +188,34 @@ class _QuizPageState extends State<QuizPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_quiz == null) return _missing();
+    if (_quiz == null || !_quiz!.isPublished) return _missing();
     if (_result != null) return _resultView();
+    if (_attemptLimitReached) return _attemptLimitView();
     return _quizView();
   }
+
+  Widget _attemptLimitView() => Scaffold(
+    backgroundColor: _pageBg,
+    body: SafeArea(
+      child: Column(
+        children: [
+          _header(),
+          const Expanded(
+            child: Center(
+              child: Padding(
+                padding: EdgeInsets.all(32),
+                child: Text(
+                  'You have used all available attempts for this quiz.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: _muted, fontSize: 15),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 
   /// Course without quiz data — never another course's questions.
   Widget _missing() {
@@ -203,9 +275,9 @@ class _QuizPageState extends State<QuizPage> {
           ),
           const SizedBox(width: 12),
           // Expanded = page title fills the remaining width.
-          const Expanded(
+          Expanded(
             child: Text(
-              'Module Quiz',
+              widget.quizId == null ? 'Module Quiz' : _quiz?.title ?? 'Quiz',
               style: TextStyle(
                 color: _heading,
                 fontSize: 24,
@@ -247,6 +319,19 @@ class _QuizPageState extends State<QuizPage> {
                     ),
                   ),
                   const Spacer(),
+                  if (_remainingSeconds != null) ...[
+                    Text(
+                      '${(_remainingSeconds! ~/ 60).toString().padLeft(2, '0')}:'
+                      '${(_remainingSeconds! % 60).toString().padLeft(2, '0')}',
+                      key: const ValueKey('quiz-time-remaining'),
+                      style: const TextStyle(
+                        color: _red,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
                   Text(
                     '$_percent%',
                     style: const TextStyle(
@@ -279,6 +364,13 @@ class _QuizPageState extends State<QuizPage> {
                 controller: _scroll,
                 padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
                 children: [
+                  if (quiz.description.isNotEmpty) ...[
+                    Text(
+                      quiz.description,
+                      style: const TextStyle(color: _muted, height: 1.4),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   _questionCard(question.topic, question.text),
                   const SizedBox(height: 18),
                   for (var i = 0; i < question.options.length; i++)
@@ -472,6 +564,7 @@ class _QuizPageState extends State<QuizPage> {
   Widget _resultView() {
     final result = _result!;
     final passed = result.passed;
+    final completedCourse = passed && _quiz!.isFinal;
 
     // Scaffold = the quiz result screen.
     return Scaffold(
@@ -513,8 +606,10 @@ class _QuizPageState extends State<QuizPage> {
               const SizedBox(height: 8),
               Text(
                 passed
-                    ? 'Congratulations! You completed the final quiz.'
-                    : 'You need $quizPassingPercentage% or higher to complete this course.',
+                    ? _quiz!.isFinal
+                          ? 'Congratulations! You completed the final quiz.'
+                          : 'Congratulations! You passed this quiz.'
+                    : 'You need ${_quiz!.passingPercentage}% or higher to pass this quiz.',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: _muted,
@@ -560,7 +655,7 @@ class _QuizPageState extends State<QuizPage> {
                       ),
                       _resultRow(
                         'Minimum Passing Score',
-                        '$quizPassingPercentage%',
+                        '${_quiz!.passingPercentage}%',
                       ),
                     ],
                   ],
@@ -590,7 +685,7 @@ class _QuizPageState extends State<QuizPage> {
                 ),
               ),
               const SizedBox(height: 26),
-              if (passed) ...[
+              if (completedCourse) ...[
                 // View Certificate button
                 SizedBox(
                   width: double.infinity,
@@ -599,9 +694,8 @@ class _QuizPageState extends State<QuizPage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => CertificatePage(
-                            courseId: widget.courseId,
-                          ),
+                          builder: (_) =>
+                              CertificatePage(courseId: widget.courseId),
                         ),
                       );
                     },
@@ -650,7 +744,23 @@ class _QuizPageState extends State<QuizPage> {
                     ),
                   ),
                 ),
-              ] else ...[
+              ] else if (passed) ...[
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _purple,
+                      side: const BorderSide(color: _purple, width: 1.5),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: const Text('Continue'),
+                  ),
+                ),
+              ] else if (!_attemptLimitReached) ...[
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton(
@@ -671,6 +781,11 @@ class _QuizPageState extends State<QuizPage> {
                       ),
                     ),
                   ),
+                ),
+              ] else ...[
+                OutlinedButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Back to course'),
                 ),
               ],
             ],

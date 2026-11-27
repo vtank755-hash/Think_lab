@@ -15,6 +15,18 @@ void main() {
     expect(find.text('Aarav Sharma'), findsOneWidget);
   });
 
+  testWidgets('Total Users statistic opens the Manage Users page', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: AdminDashboardPage()));
+
+    await tester.tap(find.byKey(const ValueKey('stat-card-users')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AdminManageUsersPage), findsOneWidget);
+    expect(find.text('Manage Users'), findsOneWidget);
+  });
+
   testWidgets('Manage Users search filters the user list', (tester) async {
     await tester.pumpWidget(const MaterialApp(home: AdminManageUsersPage()));
 

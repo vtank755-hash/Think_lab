@@ -5,6 +5,9 @@ import 'package:flutter/foundation.dart';
 import 'course.dart';
 import 'session.dart';
 
+/// Optional hook for persisting purchases to Firestore.
+void Function(String userId, String courseId)? onCoursePurchased;
+
 /// Purchases of every user: `userId -> the course ids that user paid for`.
 ///
 /// The check is ALWAYS "current user id + course id" — never one global
@@ -33,10 +36,12 @@ bool isPurchased(Course course, {String? userId}) =>
 /// Unlocks every course in [courses] for the user who paid
 /// (the signed-in user unless [userId] says otherwise).
 void unlockCourses(Iterable<Course> courses, {String? userId}) {
-  final purchases = purchasesOf(userId ?? currentUser.value);
+  final uid = userId ?? currentUser.value;
+  final purchases = purchasesOf(uid);
   final next = Set<String>.of(purchases.value);
   for (final course in courses) {
-    next.add(course.id);
+    final added = next.add(course.id);
+    if (added) onCoursePurchased?.call(uid, course.id);
   }
   purchases.value = next;
 }

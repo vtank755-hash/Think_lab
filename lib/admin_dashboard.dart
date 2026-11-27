@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 
+import 'auth_service.dart';
 import 'admin_category.dart';
 import 'admin_courses_page.dart';
+import 'admin_enrollments_page.dart';
 import 'admin_manega_user.dart';
+import 'admin_orders_page.dart';
+import 'admin_profile.dart';
+import 'admin_quiz_management.dart';
 import 'admin_login.dart';
 import 'create_course_quiz_page.dart';
 import 'login_user.dart';
@@ -34,19 +39,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     _currentTab = widget.initialTab;
   }
 
-  void _showActionFeedback(String actionName) {
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: _heading,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        content: Text('$actionName clicked (Admin Action)'),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
-
   void _showLogoutDialog() {
     showDialog(
       context: context,
@@ -69,12 +61,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           FilledButton(
             onPressed: () {
               Navigator.pop(ctx);
-              signOut();
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (_) => const LoginPage()),
-                (route) => false,
-              );
+              _logout();
             },
             style: FilledButton.styleFrom(
               backgroundColor: const Color(0xFFF04438),
@@ -87,6 +74,25 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _logout() async {
+    try {
+      await authService.signOut();
+      signOut();
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+        (route) => false,
+      );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(authErrorMessage(error))),
+        );
+      }
+    }
   }
 
   @override
@@ -108,6 +114,17 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       // ── Tab 2: Manage Users ──────────────────────────────────────────────
       case 2:
         return const AdminManageUsersPage();
+
+      // ── Tab 3: Orders & Payments ────────────────────────────────────────
+      case 3:
+        return const AdminOrdersPage();
+
+      // ── Tab 4: Admin Profile ────────────────────────────────────────────
+      case 4:
+        return AdminProfilePage(
+          onBack: () => setState(() => _currentTab = 0),
+          onLogout: _showLogoutDialog,
+        );
 
       // ── Tab 0: Dashboard (default) ───────────────────────────────────────
       default:
@@ -203,6 +220,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           children: [
             Expanded(
               child: _buildStatCard(
+                key: const ValueKey('stat-card-users'),
                 icon: Icons.person_outline_rounded,
                 iconColor: const Color(0xFF6C35E8),
                 iconBg: const Color(0xFFEDEAFE),
@@ -211,6 +229,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 badgeBg: const Color(0xFFE5F8EE),
                 value: '24.8k',
                 label: 'Total Users',
+                onTap: () => setState(() => _currentTab = 2),
               ),
             ),
             const SizedBox(width: 16),
@@ -243,11 +262,21 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 badgeBg: const Color(0xFFE0F7F4),
                 value: '18.2k',
                 label: 'Enrollments',
+                key: const ValueKey('stat-card-enrollments'),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const AdminEnrollmentsPage(),
+                    ),
+                  );
+                },
               ),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: _buildStatCard(
+                key: const ValueKey('stat-card-revenue'),
                 icon: Icons.currency_rupee_rounded,
                 iconColor: _green,
                 iconBg: const Color(0xFFE4F7EC),
@@ -256,6 +285,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 badgeBg: const Color(0xFFE5F8EE),
                 value: '₹12.8M',
                 label: 'Total Revenue',
+                onTap: () => setState(() => _currentTab = 3),
               ),
             ),
           ],
@@ -399,18 +429,32 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               },
             ),
             _buildActionItem(
+              key: const ValueKey('quick-action-orders'),
               icon: Icons.receipt_long_outlined,
               iconColor: const Color(0xFF009688),
               bgColor: const Color(0xFFE2F6F3),
               label: 'Orders',
-              onTap: () => _showActionFeedback('View Orders'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AdminOrdersPage()),
+                );
+              },
             ),
             _buildActionItem(
+              key: const ValueKey('quick-action-quizzes'),
               icon: Icons.pie_chart_outline_rounded,
               iconColor: const Color(0xFFE02424),
               bgColor: const Color(0xFFFDECEE),
               label: 'Quiz',
-              onTap: () => _showActionFeedback('Manage Quizzes'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const AdminQuizManagementPage(),
+                  ),
+                );
+              },
             ),
           ],
         ),
@@ -505,11 +549,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 ),
                 borderRadius: BorderRadius.circular(16),
                 onTap: () {
-                  if (i == 4) {
-                    _showLogoutDialog();
-                  } else {
-                    setState(() => _currentTab = i);
-                  }
+                  setState(() => _currentTab = i);
                 },
                 child: Padding(
                   padding: const EdgeInsets.symmetric(

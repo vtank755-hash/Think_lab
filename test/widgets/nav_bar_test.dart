@@ -2,12 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:think_lab/categories.dart';
+import 'package:think_lab/category_repository.dart';
 import 'package:think_lab/index.dart';
 import 'package:think_lab/widgets/nav_bar.dart';
 
 import '../test_utils.dart';
 
 void main() {
+  late CategoryRepository originalRepository;
+  late FakeCategoryRepository fakeRepository;
+
+  setUp(() {
+    originalRepository = categoryRepository;
+    fakeRepository = FakeCategoryRepository();
+    categoryRepository = fakeRepository;
+  });
+
+  tearDown(() async {
+    categoryRepository = originalRepository;
+    await fakeRepository.dispose();
+  });
+
   testWidgets('Home screen uses the shared NavBar', (tester) async {
     ignoreOverflowErrors();
 

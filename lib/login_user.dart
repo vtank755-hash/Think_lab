@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
-import 'admin_dashboard.dart';
+import 'auth_service.dart';
 import 'admin_login.dart';
 import 'register_user.dart';
 import 'index.dart';
+import 'services/user_data_sync_service.dart';
 import 'session.dart';
 
 const _primary = Color(0xFF6C35E8);
@@ -49,6 +50,7 @@ class _LoginPageState extends State<LoginPage> {
   final _password = TextEditingController();
   // true = password hidden (shown as dots) until the eye icon is tapped.
   bool _obscurePassword = true;
+  bool _isSubmitting = false;
 
   // Free the controllers when this page is closed.
   @override
@@ -82,24 +84,29 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   // Submit login
-  void _submitLogin() {
-    if (_formKey.currentState?.validate() ?? false) {
-      // The typed e-mail becomes the current user id: every wishlist and
-      // every purchase in the app is stored against THIS user + course id.
-      final email = _email.text.trim();
-      signIn(email);
-      if (email.toLowerCase().contains('admin')) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const AdminDashboardPage()),
-        );
-        return;
-      }
-      // Login successful -> Go to the Home page.
+  Future<void> _submitLogin() async {
+    if (_isSubmitting || !(_formKey.currentState?.validate() ?? false)) return;
+    setState(() => _isSubmitting = true);
+    try {
+      final user = await authService.signIn(
+        email: _email.text,
+        password: _password.text,
+      );
+      if (!mounted) return;
+      setAuthenticatedSession(user.id, user.profile);
+      UserDataSyncService.instance.syncCurrentUser();
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const HomePage()),
       );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(authErrorMessage(error))));
+      }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
@@ -245,15 +252,22 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         ),
                         const SizedBox(height: 18),
-                        // Align = pushes "Forgot Password?" to the right edge.
                         Align(
                           alignment: Alignment.centerRight,
-                          child: Text('Forgot Password?', style: _link(18)),
+                          child: TextButton(
+                            onPressed: _isSubmitting
+                                ? null
+                                : _sendPasswordResetEmail,
+                            child: Text(
+                              'Forgot Password?',
+                              style: _link(18),
+                            ),
+                          ),
                         ),
                         const SizedBox(height: 25),
                         // Login button: gradient box, taps call _submitLogin.
                         GestureDetector(
-                          onTap: _submitLogin,
+                          onTap: _isSubmitting ? null : _submitLogin,
                           // Container = the gradient rounded Login button.
                           child: Container(
                             width: double.infinity,
@@ -265,13 +279,17 @@ class _LoginPageState extends State<LoginPage> {
                               borderRadius: BorderRadius.circular(20),
                             ),
                             alignment: Alignment.center,
-                            child: const Text(
-                              'Login',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                              ),
+                            child: _isSubmitting
+                                ? const CircularProgressIndicator(
+                                    color: Colors.white,
+                                  )
+                                : const Text(
+                                    'Login',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                             ),
                           ),
                         ),
@@ -363,6 +381,33 @@ class _LoginPageState extends State<LoginPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _sendPasswordResetEmail() async {
+    final validationError = _validateEmail(_email.text);
+    if (validationError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(validationError)),
+      );
+      return;
+    }
+    if (_isSubmitting) return;
+    setState(() => _isSubmitting = true);
+    try {
+      await authService.sendPasswordResetEmail(_email.text);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password reset email sent.')),
+      );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(authErrorMessage(error))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
   }
 
   // Small LearnHub logo: a gradient box with the logo drawn by CustomPaint.

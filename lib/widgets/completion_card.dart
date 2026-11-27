@@ -15,7 +15,7 @@ const _green = Color(0xFF25A55F);
 // COMPLETION CARD
 // Shown when every lesson of the course is finished:
 // - quiz not passed yet -> "Course learning completed" + Take Quiz button
-// - quiz passed (75%+)  -> "Course successfully completed"
+// - final quiz passed   -> "Course successfully completed"
 // Used on Course Details and on the last lesson page.
 // =====================================================
 class CompletionCard extends StatelessWidget {
@@ -26,6 +26,7 @@ class CompletionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final finalQuiz = quizForCourse(course.id);
     final passed = isQuizPassed(course.id);
     final attempt = latestQuizAttempt(course.id);
     final total = courseLessonCount(course);
@@ -74,9 +75,11 @@ class CompletionCard extends StatelessWidget {
             passed
                 ? 'Final quiz passed with ${attempt?.percentage}% '
                       '(${attempt?.score}/${attempt?.total}).'
+                : finalQuiz == null || !finalQuiz.isPublished
+                ? 'All $total lessons are complete. No published final quiz is available yet.'
                 : 'All $total lessons completed. Take the final quiz — '
-                      '$quizQuestionCount questions, $quizPassingPercentage% '
-                      'or higher completes the course.',
+                      '${finalQuiz.questions.length} questions, '
+                      '${finalQuiz.passingPercentage}% or higher completes the course.',
             style: TextStyle(
               color: passed ? _green : _muted,
               fontSize: 13,
@@ -117,7 +120,7 @@ class CompletionCard extends StatelessWidget {
                 ),
               ),
             ),
-          ] else ...[
+          ] else if (finalQuiz != null && finalQuiz.isPublished) ...[
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,

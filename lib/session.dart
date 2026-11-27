@@ -47,13 +47,35 @@ final userProfile = ValueNotifier<UserProfile>(const UserProfile());
 /// else: user A can own course `c1` while user B does not.
 final currentUser = ValueNotifier<String>('guest');
 
+/// Whether the current session entered through the admin login flow.
+final isAdminSession = ValueNotifier<bool>(false);
+
+/// Applies a user returned by the authenticated backend.
+void setAuthenticatedSession(
+  String userId,
+  UserProfile profile, {
+  bool isAdmin = false,
+}) {
+  currentUser.value = userId;
+  userProfile.value = profile;
+  isAdminSession.value = isAdmin;
+}
+
 /// Signs [userId] in — called by the login screen on a successful login.
+/// Kept for local state tests; production sign-in uses the authentication API.
 void signIn(String userId) {
   final id = userId.trim();
   currentUser.value = id.isEmpty ? 'guest' : id;
+  isAdminSession.value = false;
   if (id.contains('@')) {
     userProfile.value = userProfile.value.copyWith(email: id);
   }
+}
+
+/// Signs in through the admin portal.
+void signInAdmin(String userId) {
+  signIn(userId);
+  isAdminSession.value = true;
 }
 
 /// Updates current user profile details.
@@ -76,6 +98,7 @@ void updateProfile({
 /// Signs the current user out.
 void signOut() {
   currentUser.value = 'guest';
+  isAdminSession.value = false;
 }
 
 /// Resets profile to default state (tests only).

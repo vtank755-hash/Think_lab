@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+import 'auth_service.dart';
+import 'index.dart';
+import 'services/user_data_sync_service.dart';
+import 'session.dart';
 
 // Color Palette
 const _primary = Color(0xFF6C35E8);
@@ -51,6 +55,7 @@ class _RegisterPageState extends State<RegisterPage> {
   // These two flags hide / show the password text.
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isSubmitting = false;
 
   // Free all the controllers when this page is closed.
   @override
@@ -112,10 +117,8 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   // Submit registration
-  void _submitRegister() {
-    if (!(_formKey.currentState?.validate() ?? false)) {
-      return;
-    }
+  Future<void> _submitRegister() async {
+    if (_isSubmitting || !(_formKey.currentState?.validate() ?? false)) return;
 
     // Terms not accepted -> show a warning message and stop here.
     if (!_agreeToTerms) {
@@ -129,19 +132,30 @@ class _RegisterPageState extends State<RegisterPage> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Registration details validated successfully!'),
-      ),
-    );
-
-    // Give the user 1 second to read the success message.
-    Future.delayed(const Duration(seconds: 1), () {
+    setState(() => _isSubmitting = true);
+    try {
+      final user = await authService.register(
+        name: _name.text,
+        email: _email.text,
+        password: _password.text,
+      );
+      if (!mounted) return;
+      setAuthenticatedSession(user.id, user.profile);
+      UserDataSyncService.instance.syncCurrentUser();
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const HomePage()),
+        (route) => false,
+      );
+    } catch (error) {
       if (mounted) {
-        // Registration finished -> back to the Login page.
-        Navigator.pop(context);
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(authErrorMessage(error))));
       }
-    });
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
   }
 
   @override
@@ -531,16 +545,18 @@ class _RegisterPageState extends State<RegisterPage> {
       ),
       // GestureDetector = taps validate the form and register the user.
       child: GestureDetector(
-        onTap: _submitRegister,
-        child: const Center(
-          child: Text(
-            'Sign Up',
-            style: TextStyle(
-              color: _white,
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+        onTap: _isSubmitting ? null : _submitRegister,
+        child: Center(
+          child: _isSubmitting
+              ? const CircularProgressIndicator(color: _white)
+              : const Text(
+                  'Sign Up',
+                  style: TextStyle(
+                    color: _white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
         ),
       ),
     );

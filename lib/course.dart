@@ -44,6 +44,24 @@ class Lesson {
     this.code,
     this.notes,
   });
+
+  Map<String, dynamic> toMap() => {
+    'title': title,
+    'duration': duration,
+    'context': context,
+    'points': points,
+    'code': code,
+    'notes': notes,
+  };
+
+  factory Lesson.fromMap(Map<String, dynamic> map) => Lesson(
+    map['title'] as String? ?? '',
+    map['duration'] as String? ?? '00:00',
+    context: map['context'] as String? ?? '',
+    points: List<String>.from(map['points'] as List? ?? const []),
+    code: map['code'] as String?,
+    notes: map['notes'] as String?,
+  );
 }
 
 /// One module of a course curriculum, e.g. `1. Getting Started with Python`.
@@ -55,6 +73,18 @@ class Module {
   final List<Lesson> lessons;
 
   const Module(this.title, this.lessons);
+
+  Map<String, dynamic> toMap() => {
+    'title': title,
+    'lessons': lessons.map((lesson) => lesson.toMap()).toList(),
+  };
+
+  factory Module.fromMap(Map<String, dynamic> map) => Module(
+    map['title'] as String? ?? '',
+    (map['lessons'] as List? ?? const [])
+        .map((item) => Lesson.fromMap(Map<String, dynamic>.from(item as Map)))
+        .toList(),
+  );
 }
 
 /// The complete data for one course.
@@ -111,6 +141,40 @@ class Course {
         category.toLowerCase().contains(q) ||
         instructor.toLowerCase().contains(q);
   }
+
+  Map<String, dynamic> toMap() => {
+    'id': id,
+    'title': title,
+    'category': category,
+    'image': image,
+    'instructor': instructor,
+    'instructorRole': instructorRole,
+    'rating': rating,
+    'students': students,
+    'duration': duration,
+    'description': description,
+    'price': price,
+    'isFavorite': isFavorite,
+    'modules': modules.map((module) => module.toMap()).toList(),
+  };
+
+  factory Course.fromMap(Map<String, dynamic> map, {String? id}) => Course(
+    id: id ?? map['id'] as String? ?? '',
+    title: map['title'] as String? ?? '',
+    category: map['category'] as String? ?? '',
+    image: map['image'] as String? ?? '',
+    instructor: map['instructor'] as String? ?? '',
+    instructorRole: map['instructorRole'] as String? ?? '',
+    rating: (map['rating'] ?? '0').toString(),
+    students: (map['students'] ?? '0').toString(),
+    duration: map['duration'] as String? ?? '',
+    description: map['description'] as String? ?? '',
+    price: map['price'] as String? ?? '₹0',
+    isFavorite: map['isFavorite'] as bool? ?? false,
+    modules: (map['modules'] as List? ?? const [])
+        .map((item) => Module.fromMap(Map<String, dynamic>.from(item as Map)))
+        .toList(),
+  );
 }
 
 /// Every user's wishlist: `userId -> the ids of their saved courses`.
@@ -146,14 +210,17 @@ void toggleFavorite(Course course) {
   final next = Set<String>.of(wishlist.value);
   if (!next.remove(course.id)) next.add(course.id);
   wishlist.value = next;
+  onWishlistChanged?.call(currentUser.value, next);
 }
+
+/// Optional hook for persisting wishlist changes to Firestore.
+void Function(String userId, Set<String> courseIds)? onWishlistChanged;
 
 /// Restores the default wishlist of every user — tests only.
 void resetFavorites() => _wishlistByUser.clear();
 
-/// Every course in the app — the single source of truth.
-/// Exactly six courses, distributed across the six categories.
-const allCourses = <Course>[
+/// Built-in courses available in the app.
+const _builtInCourses = <Course>[
   Course(
     id: 'c1',
     title: 'Complete Web Development Bootcamp',
@@ -1614,6 +1681,75 @@ const allCourses = <Course>[
     ],
   ),
 ];
+
+final Map<String, Course> _adminCreatedCourses = {};
+
+/// Courses loaded from Firestore. This is the dynamic source once synced.
+final ValueNotifier<List<Course>> firestoreCourses =
+    ValueNotifier<List<Course>>(const []);
+
+bool _firestoreCoursesSynced = false;
+bool get firestoreCoursesSynced => _firestoreCoursesSynced;
+
+/// Every course available to the app.
+///
+/// Prefers Firestore-loaded courses once Firestore has synced, otherwise falls
+/// back to the built-in catalog plus in-memory admin-created courses.
+List<Course> get allCourses {
+  if (_firestoreCoursesSynced) {
+    return List<Course>.unmodifiable(firestoreCourses.value);
+  }
+  return [..._builtInCourses, ..._adminCreatedCourses.values];
+}
+
+/// Replaces the dynamic Firestore course catalog.
+void setFirestoreCourses(List<Course> courses, {bool synced = true}) {
+  _firestoreCoursesSynced = synced;
+  firestoreCourses.value = List<Course>.unmodifiable(courses);
+}
+
+/// Adds or updates a course created by an admin.
+void saveAdminCreatedCourse(Course course) {
+  if (_builtInCourses.any((item) => item.id == course.id)) {
+    throw ArgumentError.value(course.id, 'course.id', 'ID is already in use');
+  }
+  _adminCreatedCourses[course.id] = course;
+  _syncFirestoreCoursesNotifier(course, remove: false);
+}
+
+/// Whether [id] belongs to a course created by an admin.
+bool isAdminCreatedCourse(String id) => _adminCreatedCourses.containsKey(id);
+
+/// Removes an admin-created course from the shared catalog.
+void deleteAdminCreatedCourse(String id) {
+  _adminCreatedCourses.remove(id);
+  _syncFirestoreCoursesNotifier(Course(
+    id: id,
+    title: '',
+    category: '',
+    image: '',
+    instructor: '',
+    instructorRole: '',
+    rating: '',
+    students: '',
+    duration: '',
+    description: '',
+    price: '',
+  ), remove: true);
+}
+
+void _syncFirestoreCoursesNotifier(Course course, {required bool remove}) {
+  final current = firestoreCourses.value;
+  if (current.isEmpty) return;
+  final next = List<Course>.of(current);
+  next.removeWhere((item) => item.id == course.id);
+  if (!remove) next.add(course);
+  next.sort((a, b) => a.title.compareTo(b.title));
+  firestoreCourses.value = List<Course>.unmodifiable(next);
+}
+
+/// Clears admin-created courses. Intended for tests.
+void resetAdminCreatedCourses() => _adminCreatedCourses.clear();
 
 // ---------------------------------------------------------------------------
 // Curriculum helpers — ids, lookups and calculated durations.

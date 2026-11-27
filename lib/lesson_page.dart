@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'course.dart';
 import 'purchases.dart';
 import 'progress.dart';
+import 'quiz.dart';
 import 'quiz_page.dart';
 import 'quiz_results.dart';
 import 'session.dart';
@@ -679,7 +680,13 @@ class _LessonPageState extends State<LessonPage> {
     final canPrevious = previous != null;
     // On the very last lesson the button becomes "Take Quiz" once the whole
     // course is learned and the final quiz has not been passed yet.
-    final takeQuiz = isLast && _lessonsComplete && !isQuizPassed(_course.id);
+    final finalQuiz = quizForCourse(_course.id);
+    final takeQuiz =
+        isLast &&
+        _lessonsComplete &&
+        !isQuizPassed(_course.id) &&
+        finalQuiz != null &&
+        finalQuiz.isPublished;
 
     // Row = previous and next buttons side by side.
     return Row(

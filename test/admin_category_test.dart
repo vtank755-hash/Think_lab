@@ -2,8 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:think_lab/admin_category.dart';
 import 'package:think_lab/admin_dashboard.dart';
+import 'package:think_lab/category_repository.dart';
+
+import 'test_utils.dart';
 
 void main() {
+  late CategoryRepository originalRepository;
+  late FakeCategoryRepository fakeRepository;
+
+  setUp(() {
+    originalRepository = categoryRepository;
+    fakeRepository = FakeCategoryRepository();
+    categoryRepository = fakeRepository;
+  });
+
+  tearDown(() async {
+    categoryRepository = originalRepository;
+    await fakeRepository.dispose();
+  });
+
   testWidgets('Dashboard Categories quick action opens admin category page', (
     tester,
   ) async {
@@ -60,6 +77,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(const MaterialApp(home: AdminCategoryPage()));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('edit-category-Development')));
     await tester.pumpAndSettle();
@@ -84,5 +102,20 @@ void main() {
       find.byKey(const ValueKey('edit-category-Development Systems')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('Admin category deletion updates the streamed list', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: AdminCategoryPage()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('delete-category-Development')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Development'), findsNothing);
+    expect(find.text('5 Active Categories'), findsOneWidget);
   });
 }

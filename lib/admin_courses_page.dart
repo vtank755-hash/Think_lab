@@ -1,13 +1,16 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 import 'admin_course_delete.dart';
+import 'course.dart';
+import 'course_repository.dart';
 import 'create_course_quiz_page.dart';
 
 // ─── Shared palette (kept in sync with admin_dashboard.dart) ───────────────
 const _purple = Color(0xFF6B45F0);
 const _heading = Color(0xFF1B1838);
 const _muted = Color(0xFF8E8EA9);
-const _pageBg = Color(0xFFF7F8FE);
+
 
 // ─── Course status enum ─────────────────────────────────────────────────────
 
@@ -46,10 +49,7 @@ class AdminCourse {
   });
 }
 
-// ─── Seed data for the demo list ────────────────────────────────────────────
-
-/// Default list of courses shown in the admin panel.
-/// Wrapped in a function so tests can reset it easily.
+/// Default list of courses shown when Firestore is unavailable (tests/offline fallback).
 List<AdminCourse> buildDefaultCourses() => [
   AdminCourse(
     id: 'c1',
@@ -80,6 +80,24 @@ List<AdminCourse> buildDefaultCourses() => [
   ),
 ];
 
+AdminCourse _adminCourseFromCatalog(Course course) {
+  return AdminCourse(
+    id: course.id,
+    title: course.title,
+    instructor: course.instructor.isEmpty ? 'Admin Instructor' : course.instructor,
+    students: course.students.isEmpty ? '0 students' : course.students,
+    price: course.price.isEmpty ? '₹0' : course.price,
+    imageAsset: course.image.isEmpty
+        ? 'assets/images/courses/web_dev.jpg'
+        : course.image,
+    status: CourseStatus.active,
+    category: course.category.isEmpty ? 'Design & UI' : course.category,
+    level: 'Intermediate',
+    description: course.description,
+    visibility: 'Public (Catalog)',
+  );
+}
+
 // ─── Page widget ────────────────────────────────────────────────────────────
 
 /// **Admin Manage Courses** screen.
@@ -94,14 +112,27 @@ class AdminCoursesPage extends StatefulWidget {
 }
 
 class _AdminCoursesPageState extends State<AdminCoursesPage> {
-  /// Full course list (mutated by add / delete).
-  final List<AdminCourse> _allCourses = buildDefaultCourses();
-
   /// Live search query typed into the search bar.
   String _query = '';
 
   /// Controller for the search text field.
   final TextEditingController _searchCtrl = TextEditingController();
+  Stream<List<Course>>? _coursesStream;
+  List<AdminCourse>? _fallbackCourses;
+
+  @override
+  void initState() {
+    super.initState();
+    try {
+      if (Firebase.apps.isNotEmpty) {
+        _coursesStream = courseRepository.watchCourses();
+      } else {
+        _fallbackCourses = buildDefaultCourses();
+      }
+    } catch (_) {
+      _fallbackCourses = buildDefaultCourses();
+    }
+  }
 
   @override
   void dispose() {
@@ -109,13 +140,10 @@ class _AdminCoursesPageState extends State<AdminCoursesPage> {
     super.dispose();
   }
 
-  // ── Derived list (filtered by search query) ───────────────────────────────
-
-  /// Returns [_allCourses] filtered by [_query] (case-insensitive).
-  List<AdminCourse> get _filtered {
-    if (_query.isEmpty) return _allCourses;
+  List<AdminCourse> _filtered(List<AdminCourse> courses) {
+    if (_query.isEmpty) return courses;
     final q = _query.toLowerCase();
-    return _allCourses
+    return courses
         .where(
           (c) =>
               c.title.toLowerCase().contains(q) ||
@@ -126,7 +154,7 @@ class _AdminCoursesPageState extends State<AdminCoursesPage> {
 
   // ── Delete course ─────────────────────────────────────────────────────────
 
-  /// Shows a confirmation dialog, then removes [course] from [_allCourses].
+  /// Shows a confirmation dialog, then removes [course].
   Future<void> _confirmDelete(AdminCourse course) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -134,7 +162,15 @@ class _AdminCoursesPageState extends State<AdminCoursesPage> {
     );
     if (!mounted || confirmed != true) return;
 
-    setState(() => _allCourses.remove(course));
+    deleteAdminCreatedCourse(course.id);
+    if (_fallbackCourses != null) {
+      setState(() => _fallbackCourses!.removeWhere((c) => c.id == course.id));
+    }
+    try {
+      await courseRepository.deleteCourse(course.id);
+    } catch (e) {
+      debugPrint('Failed to delete course from Firestore: $e');
+    }
     _showSnack('${course.title} deleted.');
   }
 
@@ -149,16 +185,22 @@ class _AdminCoursesPageState extends State<AdminCoursesPage> {
       ),
     );
     if (updated != null) {
-      setState(() {
-        course.title = updated.title;
-        course.price = updated.price;
-        course.status = updated.status;
-        course.category = updated.category;
-        course.level = updated.level;
-        course.description = updated.description;
-        course.visibility = updated.visibility;
-      });
-      _showSnack('${course.title} updated.');
+      final catalogCourse = _toCatalogCourse(updated);
+      if (isAdminCreatedCourse(updated.id)) {
+        saveAdminCreatedCourse(catalogCourse);
+      }
+      if (_fallbackCourses != null) {
+        setState(() {
+          final index = _fallbackCourses!.indexWhere((c) => c.id == updated.id);
+          if (index != -1) _fallbackCourses![index] = updated;
+        });
+      }
+      try {
+        await courseRepository.saveCourse(catalogCourse);
+      } catch (e) {
+        debugPrint('Failed to save course to Firestore: $e');
+      }
+      _showSnack('${updated.title} updated.');
     }
   }
 
@@ -173,10 +215,33 @@ class _AdminCoursesPageState extends State<AdminCoursesPage> {
       ),
     );
     if (newCourse != null) {
-      setState(() => _allCourses.add(newCourse));
+      final catalogCourse = _toCatalogCourse(newCourse);
+      saveAdminCreatedCourse(catalogCourse);
+      if (_fallbackCourses != null) {
+        setState(() => _fallbackCourses!.add(newCourse));
+      }
+      try {
+        await courseRepository.saveCourse(catalogCourse);
+      } catch (e) {
+        debugPrint('Failed to save course to Firestore: $e');
+      }
       _showSnack('"${newCourse.title}" added successfully.');
     }
   }
+
+  Course _toCatalogCourse(AdminCourse course) => Course(
+    id: course.id,
+    title: course.title,
+    category: course.category ?? 'Uncategorized',
+    image: course.imageAsset,
+    instructor: course.instructor,
+    instructorRole: 'Course Instructor',
+    rating: 'New',
+    students: '0',
+    duration: '0h',
+    description: course.description ?? '',
+    price: course.price,
+  );
 
   // ── Snack helper ──────────────────────────────────────────────────────────
 
@@ -197,8 +262,6 @@ class _AdminCoursesPageState extends State<AdminCoursesPage> {
 
   @override
   Widget build(BuildContext context) {
-    final courses = _filtered;
-
     return Column(
       children: [
         // ── Page header ──────────────────────────────────────────────────
@@ -309,102 +372,57 @@ class _AdminCoursesPageState extends State<AdminCoursesPage> {
 
         // ── Course list ──────────────────────────────────────────────────
         Expanded(
-          child: courses.isEmpty
-              ? Center(
-                  child: Text(
-                    'No courses found.',
-                    style: TextStyle(
-                      color: _muted.withValues(alpha: 0.7),
-                      fontSize: 15,
-                    ),
-                  ),
+          child: _coursesStream != null
+              ? StreamBuilder<List<Course>>(
+                  stream: _coursesStream,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting &&
+                        !snapshot.hasData) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Text(
+                          'Could not load courses: ${snapshot.error}',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: _muted.withValues(alpha: 0.8)),
+                        ),
+                      );
+                    }
+                    final courses = _filtered(
+                      (snapshot.data ?? const <Course>[])
+                          .map(_adminCourseFromCatalog)
+                          .toList(),
+                    );
+                    return _buildCourseList(courses);
+                  },
                 )
-              : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-                  itemCount: courses.length,
-                  itemBuilder: (ctx, i) => _CourseCard(
-                    key: ValueKey('course-card-${courses[i].id}'),
-                    course: courses[i],
-                    onEdit: () => _openEditSheet(courses[i]),
-                    onDelete: () => _confirmDelete(courses[i]),
-                  ),
-                ),
+              : _buildCourseList(_filtered(_fallbackCourses ?? const [])),
         ),
       ],
     );
   }
 
-  // ── Shared sheet helpers ──────────────────────────────────────────────────
-
-  /// Labelled text field for bottom-sheet forms.
-  Widget _sheetField({
-    required String label,
-    required TextEditingController controller,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: _muted,
-            fontSize: 11.5,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.6,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFFF7F8FE),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFE2E0F4)),
-          ),
-          child: TextField(
-            controller: controller,
-            style: const TextStyle(color: _heading, fontSize: 14),
-            decoration: const InputDecoration(
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Pill-shaped status toggle button for the bottom-sheet form.
-  Widget _statusToggle({
-    required String label,
-    required bool selected,
-    required Color activeColor,
-    required Color activeBg,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
-        decoration: BoxDecoration(
-          color: selected ? activeBg : const Color(0xFFF7F8FE),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: selected ? activeColor.withValues(alpha: 0.4) : const Color(0xFFE2E0F4),
-            width: 1.5,
-          ),
-        ),
+  Widget _buildCourseList(List<AdminCourse> courses) {
+    if (courses.isEmpty) {
+      return Center(
         child: Text(
-          label,
+          'No courses found.',
           style: TextStyle(
-            color: selected ? activeColor : _muted,
-            fontWeight: FontWeight.w700,
-            fontSize: 13.5,
+            color: _muted.withValues(alpha: 0.7),
+            fontSize: 15,
           ),
         ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      itemCount: courses.length,
+      itemBuilder: (ctx, i) => _CourseCard(
+        key: ValueKey('course-card-${courses[i].id}'),
+        course: courses[i],
+        onEdit: () => _openEditSheet(courses[i]),
+        onDelete: () => _confirmDelete(courses[i]),
       ),
     );
   }

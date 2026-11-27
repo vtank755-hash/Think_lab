@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "261274739006",
+    "project_id": "thinklab-96ba2",
+    "storage_bucket": "thinklab-96ba2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:261274739006:android:b70c5243c7c0587fae4c6f",
+        "android_client_info": {
+          "package_name": "com.example.think_lab"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCgKuQGoKYiM4-ZxqJZwUEfRPLOsWftln0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

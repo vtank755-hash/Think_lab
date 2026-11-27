@@ -70,34 +70,38 @@ class _CategoryCoursesPageState extends State<CategoryCoursesPage> {
 
   @override
   Widget build(BuildContext context) {
-    final courses = _courses;
-    final total = coursesInCategory(widget.category).length;
-
     // Scaffold = the whole category page (light purple background).
     return Scaffold(
       backgroundColor: const Color(0xFFF4F1FF),
       // SafeArea = keeps content away from the notch / status bar.
       body: SafeArea(
-        // Column -> header on top, optional search field, then the course list.
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _header(total),
-            if (_showSearch) _searchField(),
-            // Expanded = fills leftover height with the list or empty state.
-            Expanded(
-              child: courses.isEmpty
-                  ? _emptyState()
-                  // ListView.separated = scrolls the filtered course cards.
-                  : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(18, 12, 18, 22),
-                      itemCount: courses.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) =>
-                          _CourseCard(course: courses[index]),
-                    ),
-            ),
-          ],
+        child: ValueListenableBuilder<List<Course>>(
+          valueListenable: firestoreCourses,
+          builder: (context, _, __) {
+            final courses = _courses;
+            final total = coursesInCategory(widget.category).length;
+            // Column -> header on top, optional search field, then the course list.
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _header(total),
+                if (_showSearch) _searchField(),
+                // Expanded = fills leftover height with the list or empty state.
+                Expanded(
+                  child: courses.isEmpty
+                      ? _emptyState()
+                      // ListView.separated = scrolls the filtered course cards.
+                      : ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(18, 12, 18, 22),
+                          itemCount: courses.length,
+                          separatorBuilder: (_, _) => const SizedBox(height: 12),
+                          itemBuilder: (context, index) =>
+                              _CourseCard(course: courses[index]),
+                        ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );

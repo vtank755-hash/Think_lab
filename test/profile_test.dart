@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:think_lab/auth_service.dart';
+import 'package:think_lab/edit_profile_page.dart';
 import 'package:think_lab/index.dart';
 import 'package:think_lab/session.dart';
 import 'package:think_lab/wishlist_page.dart';
@@ -8,9 +10,17 @@ import 'package:think_lab/wishlist_page.dart';
 import 'test_utils.dart';
 
 void main() {
+  late _ProfileTestAuthService fakeAuth;
+
   setUp(() {
     resetProfile();
     signIn('guest');
+    fakeAuth = _ProfileTestAuthService();
+    authService = fakeAuth;
+  });
+
+  tearDown(() {
+    authService = FirebaseAuthService();
   });
 
   testWidgets('Profile tab displays user details, menu items and logout', (
@@ -65,66 +75,93 @@ void main() {
     expect(find.byType(WishlistPage), findsOneWidget);
   });
 
-  testWidgets('Certificates menu item opens the Certificate screen with download option', (
+  testWidgets(
+    'Certificates menu item opens the Certificate screen with download option',
+    (tester) async {
+      ignoreOverflowErrors();
+
+      await tester.pumpWidget(const MaterialApp(home: HomePage()));
+      await tester.pumpAndSettle();
+
+      // Switch to Profile tab
+      await tester.tap(find.text('Profile'));
+      await tester.pumpAndSettle();
+
+      // Tap Certificates
+      await tester.tap(find.byKey(const ValueKey('profile-menu-certificates')));
+      await tester.pumpAndSettle();
+
+      // Verify Certificate page
+      expect(find.text('CERTIFICATE OF COMPLETION'), findsOneWidget);
+      expect(find.text('Download'), findsOneWidget);
+      expect(find.text('Share'), findsOneWidget);
+      expect(find.text('LearnHub'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'Edit Profile modifies profile info and reflects on Profile and Home',
+    (tester) async {
+      ignoreOverflowErrors();
+
+      await tester.pumpWidget(const MaterialApp(home: HomePage()));
+      await tester.pumpAndSettle();
+
+      // Switch to Profile tab
+      await tester.tap(find.text('Profile'));
+      await tester.pumpAndSettle();
+
+      // Tap Edit Profile
+      await tester.tap(find.byKey(const ValueKey('profile-edit-button')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('FULL NAME'), findsOneWidget);
+      expect(find.text('PHONE NUMBER'), findsOneWidget);
+      expect(find.text('BIO'), findsOneWidget);
+      expect(find.text('Save Changes'), findsOneWidget);
+      expect(
+        tester.widget<TextField>(find.byType(TextField).at(1)).readOnly,
+        isTrue,
+      );
+
+      // Edit Name
+      final nameField = find.widgetWithText(TextField, 'Aarav Sharma');
+      await tester.enterText(nameField, 'Aarav Sharma Updated');
+
+      // Tap Save Changes
+      await tester.ensureVisible(find.text('Save Changes'));
+      await tester.tap(find.text('Save Changes'));
+      await tester.pumpAndSettle();
+
+      // Verify updated name on Profile tab
+      expect(find.text('Aarav Sharma Updated'), findsOneWidget);
+      expect(fakeAuth.updatedName, 'Aarav Sharma Updated');
+
+      // Switch to Home tab and verify updated greeting name
+      await tester.tap(find.text('Home'));
+      await tester.pumpAndSettle();
+      expect(find.text('Aarav Sharma Updated'), findsOneWidget);
+    },
+  );
+
+  testWidgets('Profile remains unchanged when the Firestore update fails', (
     tester,
   ) async {
     ignoreOverflowErrors();
+    fakeAuth.failProfileUpdate = true;
 
-    await tester.pumpWidget(const MaterialApp(home: HomePage()));
-    await tester.pumpAndSettle();
-
-    // Switch to Profile tab
-    await tester.tap(find.text('Profile'));
-    await tester.pumpAndSettle();
-
-    // Tap Certificates
-    await tester.tap(find.byKey(const ValueKey('profile-menu-certificates')));
-    await tester.pumpAndSettle();
-
-    // Verify Certificate page
-    expect(find.text('CERTIFICATE OF COMPLETION'), findsOneWidget);
-    expect(find.text('Download'), findsOneWidget);
-    expect(find.text('Share'), findsOneWidget);
-    expect(find.text('LearnHub'), findsOneWidget);
-  });
-
-  testWidgets('Edit Profile modifies profile info and reflects on Profile and Home', (
-    tester,
-  ) async {
-    ignoreOverflowErrors();
-
-    await tester.pumpWidget(const MaterialApp(home: HomePage()));
-    await tester.pumpAndSettle();
-
-    // Switch to Profile tab
-    await tester.tap(find.text('Profile'));
-    await tester.pumpAndSettle();
-
-    // Tap Edit Profile
-    await tester.tap(find.byKey(const ValueKey('profile-edit-button')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('FULL NAME'), findsOneWidget);
-    expect(find.text('PHONE NUMBER'), findsOneWidget);
-    expect(find.text('BIO'), findsOneWidget);
-    expect(find.text('Save Changes'), findsOneWidget);
-
-    // Edit Name
-    final nameField = find.widgetWithText(TextField, 'Aarav Sharma');
-    await tester.enterText(nameField, 'Aarav Sharma Updated');
-
-    // Tap Save Changes
+    await tester.pumpWidget(const MaterialApp(home: EditProfilePage()));
+    await tester.enterText(find.byType(TextField).first, 'Unpersisted Name');
     await tester.ensureVisible(find.text('Save Changes'));
     await tester.tap(find.text('Save Changes'));
     await tester.pumpAndSettle();
 
-    // Verify updated name on Profile tab
-    expect(find.text('Aarav Sharma Updated'), findsOneWidget);
-
-    // Switch to Home tab and verify updated greeting name
-    await tester.tap(find.text('Home'));
-    await tester.pumpAndSettle();
-    expect(find.text('Aarav Sharma Updated'), findsOneWidget);
+    expect(userProfile.value.name, 'Aarav Sharma');
+    expect(find.text('Edit Profile'), findsOneWidget);
+    expect(
+      find.text('Unable to complete the request. Please try again.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('Logout shows dialog confirmation', (tester) async {
@@ -156,4 +193,48 @@ void main() {
 
     expect(find.byKey(const ValueKey('profile-logout-button')), findsOneWidget);
   });
+}
+
+class _ProfileTestAuthService implements AuthService {
+  bool failProfileUpdate = false;
+  String? updatedName;
+
+  @override
+  Future<AuthenticatedUser> signIn({
+    required String email,
+    required String password,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<AuthenticatedSession?> restoreSession() async => null;
+
+  @override
+  Future<AuthenticatedUser> register({
+    required String name,
+    required String email,
+    required String password,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<void> updateProfile({
+    required String name,
+    required String phone,
+    required String bio,
+  }) async {
+    if (failProfileUpdate) throw StateError('Firestore update failed');
+    updatedName = name;
+  }
+
+  @override
+  Future<AuthenticatedUser> signInAdmin({
+    required String email,
+    required String password,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<void> sendPasswordResetEmail(String email) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> signOut() async {}
 }

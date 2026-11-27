@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'category_repository.dart';
 import 'course.dart';
+import 'course_category.dart';
 
 const _pageBackground = Color(0xFFF7F5FF);
 const _headingColor = Color(0xFF1B1838);
@@ -15,90 +17,24 @@ class AdminCategoryPage extends StatefulWidget {
   State<AdminCategoryPage> createState() => _AdminCategoryPageState();
 }
 
-class _AdminCategory {
-  final String id;
-  String name;
-  String description;
-  IconData icon;
-  Color iconBackground;
-  Color iconColor;
-  bool isActive;
-  bool isPublic;
-  List<String> tags;
-
-  _AdminCategory({
-    required this.id,
-    required this.name,
-    this.description = '',
-    required this.icon,
-    required this.iconBackground,
-    required this.iconColor,
-    this.isActive = true,
-    this.isPublic = true,
-    List<String>? tags,
-  }) : tags = tags ?? [];
-}
+typedef _AdminCategory = CourseCategory;
 
 class _AdminCategoryPageState extends State<AdminCategoryPage> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
-  final List<_AdminCategory> _categories = [
-    _AdminCategory(
-      id: 'CAT-0192',
-      name: 'Development',
-      description:
-          'Software engineering, web development, cloud computing, and programming languages.',
-      icon: Icons.terminal_rounded,
-      iconBackground: const Color(0xFFE6E2FF),
-      iconColor: const Color(0xFF5144D8),
-      tags: ['Python', 'TypeScript', 'Rust'],
-    ),
-    _AdminCategory(
-      id: 'CAT-0193',
-      name: 'Design',
-      description: 'Design fundamentals, user experience, and creative tools.',
-      icon: Icons.palette_outlined,
-      iconBackground: const Color(0xFFEEDFFF),
-      iconColor: const Color(0xFF7B20E8),
-    ),
-    _AdminCategory(
-      id: 'CAT-0194',
-      name: 'Marketing',
-      description: 'Digital strategy, content, and audience growth.',
-      icon: Icons.campaign_outlined,
-      iconBackground: const Color(0xFFFFDEDA),
-      iconColor: const Color(0xFFD21B1B),
-    ),
-    _AdminCategory(
-      id: 'CAT-0195',
-      name: 'Business',
-      description: 'Business operations, leadership, and entrepreneurship.',
-      icon: Icons.trending_up_rounded,
-      iconBackground: const Color(0xFFB7F0FF),
-      iconColor: const Color(0xFF006B82),
-    ),
-    _AdminCategory(
-      id: 'CAT-0196',
-      name: 'IT & Software',
-      description: 'Information technology tools and software systems.',
-      icon: Icons.dns_outlined,
-      iconBackground: const Color(0xFFDCE2FF),
-      iconColor: const Color(0xFF4020CF),
-    ),
-    _AdminCategory(
-      id: 'CAT-0197',
-      name: 'Personal Development',
-      description: 'Skills and habits for personal and professional growth.',
-      icon: Icons.lightbulb_outline_rounded,
-      iconBackground: const Color(0xFFDCC3FF),
-      iconColor: const Color(0xFF4A168B),
-    ),
-  ];
 
-  List<_AdminCategory> get _filteredCategories {
+  late final Stream<List<CourseCategory>> _categoriesStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _categoriesStream = categoryRepository.watchAdminCategories();
+  }
+
+  List<_AdminCategory> _filteredCategories(List<_AdminCategory> categories) {
     final query = _query.trim().toLowerCase();
-    if (query.isEmpty) return _categories;
-    return _categories
+    if (query.isEmpty) return categories;
+    return categories
         .where((category) => category.name.toLowerCase().contains(query))
         .toList();
   }
@@ -115,11 +51,13 @@ class _AdminCategoryPageState extends State<AdminCategoryPage> {
       MaterialPageRoute(builder: (_) => const _AdminCategoryFormPage()),
     );
     if (!mounted || category == null) return;
-    if (_hasCategoryName(category.name)) {
+    try {
+      await categoryRepository.save(category);
+    } on DuplicateCategoryException {
       _showMessage('A category with this name already exists.');
-      return;
+    } catch (error) {
+      _showMessage('Category was not saved: $error');
     }
-    setState(() => _categories.add(category));
   }
 
   Future<void> _editCategory(_AdminCategory category) async {
@@ -130,22 +68,13 @@ class _AdminCategoryPageState extends State<AdminCategoryPage> {
       ),
     );
     if (!mounted || updatedCategory == null) return;
-    if (_hasCategoryName(updatedCategory.name, except: category)) {
+    try {
+      await categoryRepository.save(updatedCategory);
+    } on DuplicateCategoryException {
       _showMessage('A category with this name already exists.');
-      return;
+    } catch (error) {
+      _showMessage('Category was not updated: $error');
     }
-    setState(() {
-      final index = _categories.indexOf(category);
-      if (index != -1) _categories[index] = updatedCategory;
-    });
-  }
-
-  bool _hasCategoryName(String name, {_AdminCategory? except}) {
-    return _categories.any(
-      (item) =>
-          !identical(item, except) &&
-          item.name.toLowerCase() == name.trim().toLowerCase(),
-    );
   }
 
   void _showMessage(String message) {
@@ -174,13 +103,25 @@ class _AdminCategoryPageState extends State<AdminCategoryPage> {
       ),
     );
     if (!mounted || confirmed != true) return;
-    setState(() => _categories.remove(category));
+    try {
+      await categoryRepository.delete(category.id);
+    } catch (error) {
+      _showMessage('Category was not deleted: $error');
+    }
   }
 
   @override
-  Widget build(BuildContext context) {
-    final categories = _filteredCategories;
+  Widget build(BuildContext context) => StreamBuilder<List<CourseCategory>>(
+    stream: _categoriesStream,
+    builder: (context, snapshot) => _buildPage(context, snapshot),
+  );
 
+  Widget _buildPage(
+    BuildContext context,
+    AsyncSnapshot<List<CourseCategory>> snapshot,
+  ) {
+    final allCategories = snapshot.data ?? const <CourseCategory>[];
+    final categories = _filteredCategories(allCategories);
     return Scaffold(
       key: const ValueKey('admin-category-page'),
       backgroundColor: _pageBackground,
@@ -248,7 +189,7 @@ class _AdminCategoryPageState extends State<AdminCategoryPage> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      '${_categories.length} Active Categories',
+                      '${allCategories.where((category) => category.isActive).length} Active Categories',
                       style: const TextStyle(
                         color: _headingColor,
                         fontSize: 11,
@@ -277,10 +218,16 @@ class _AdminCategoryPageState extends State<AdminCategoryPage> {
               ),
               const SizedBox(height: 16),
               Expanded(
-                child: categories.isEmpty
+                child: snapshot.hasError
+                    ? const Center(
+                        child: Text('Could not load categories. Please retry.'),
+                      )
+                    : !snapshot.hasData
+                    ? const Center(child: CircularProgressIndicator())
+                    : categories.isEmpty
                     ? const Center(
                         child: Text(
-                          'No categories found.',
+                          'No categories found. Add one to get started.',
                           style: TextStyle(color: _mutedColor),
                         ),
                       )
@@ -406,7 +353,7 @@ class _AdminCategoryFormPageState extends State<_AdminCategoryFormPage> {
       _AdminCategory(
         id:
             category?.id ??
-            'CAT-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}',
+            'CAT-${DateTime.now().microsecondsSinceEpoch}',
         name: name,
         description: _descriptionController.text.trim(),
         icon: _selectedIcon,

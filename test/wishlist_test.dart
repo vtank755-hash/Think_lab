@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:think_lab/auth_service.dart';
 import 'package:think_lab/cart.dart';
 import 'package:think_lab/cart_page.dart';
 import 'package:think_lab/checkout_page.dart';
@@ -19,10 +20,15 @@ import 'test_utils.dart';
 void main() {
   // Wishlist, cart and enrolment are app-wide state: reset for every test.
   setUp(() {
+    authService = _WishlistTestAuthService();
     clearCart();
     resetPurchases();
     resetFavorites();
     signIn('guest');
+  });
+
+  tearDown(() {
+    authService = FirebaseAuthService();
   });
 
   Future<void> openWishlist(WidgetTester tester) async {
@@ -164,7 +170,7 @@ void main() {
     expect(isPurchased(courseById('c3')), isFalse);
   });
 
-  testWidgets('Login stores the typed e-mail as the current user id', (
+  testWidgets('Login uses the authenticated uid instead of the email', (
     tester,
   ) async {
     ignoreOverflowErrors();
@@ -182,7 +188,7 @@ void main() {
     await tester.tap(find.text('Login'));
     await tester.pumpAndSettle();
 
-    expect(currentUser.value, 'usera@learnhub.app');
+    expect(currentUser.value, 'authenticated-user-uid');
     expect(find.byType(HomePage), findsOneWidget);
   });
 
@@ -251,4 +257,45 @@ void main() {
     expect(find.text('Add to Cart'), findsNothing);
     expect(find.text('2 saved courses'), findsOneWidget);
   });
+}
+
+class _WishlistTestAuthService implements AuthService {
+  @override
+  Future<AuthenticatedUser> signIn({
+    required String email,
+    required String password,
+  }) async => AuthenticatedUser(
+    id: 'authenticated-user-uid',
+    profile: UserProfile(name: 'Test User', email: email),
+  );
+
+  @override
+  Future<AuthenticatedSession?> restoreSession() async => null;
+
+  @override
+  Future<AuthenticatedUser> register({
+    required String name,
+    required String email,
+    required String password,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<void> updateProfile({
+    required String name,
+    required String phone,
+    required String bio,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<AuthenticatedUser> signInAdmin({
+    required String email,
+    required String password,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<void> sendPasswordResetEmail(String email) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> signOut() => throw UnimplementedError();
 }

@@ -118,103 +118,117 @@ class _HomePageState extends State<HomePage> {
 
   // The Home tab: one scrolling Column with all home sections inside it.
   Widget _home() {
-    // SingleChildScrollView = makes the whole Home tab scroll vertically.
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-      // Column = stacks every home section top to bottom.
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _header(),
-          const SizedBox(height: 18),
-          _searchRow(),
-          const SizedBox(height: 18),
-          _offerBanner(),
-          const SizedBox(height: 22),
-          // Row = "Categories" title, spacer, then the "See all" link.
-          Row(
+    return ValueListenableBuilder<List<Course>>(
+      valueListenable: firestoreCourses,
+      builder: (context, courses, _) {
+        final popular = courses.take(2).toList();
+        final continueCourse = courses.isNotEmpty ? courses.first : null;
+        final recommended = courses.length > 2 ? courses.skip(2).take(2).toList() : <Course>[];
+
+        // SingleChildScrollView = makes the whole Home tab scroll vertically.
+        return SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+          // Column = stacks every home section top to bottom.
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Categories',
-                style: TextStyle(
-                  color: _title,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const Spacer(),
-              // GestureDetector = makes "See all" tappable.
-              GestureDetector(
-                onTap: () {
-                  // Categories "See all" tapped -> Open Categories page.
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const CategoriesPage(),
-                    ),
-                  );
-                },
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                  child: Text(
-                    'See all',
+              _header(),
+              const SizedBox(height: 18),
+              _searchRow(),
+              const SizedBox(height: 18),
+              _offerBanner(),
+              const SizedBox(height: 22),
+              // Row = "Categories" title, spacer, then the "See all" link.
+              Row(
+                children: [
+                  const Text(
+                    'Categories',
                     style: TextStyle(
-                      color: _purple,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                      color: _title,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                ),
+                  const Spacer(),
+                  // GestureDetector = makes "See all" tappable.
+                  GestureDetector(
+                    onTap: () {
+                      // Categories "See all" tapped -> Open Categories page.
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const CategoriesPage(),
+                        ),
+                      );
+                    },
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                      child: Text(
+                        'See all',
+                        style: TextStyle(
+                          color: _purple,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
+              const SizedBox(height: 14),
+              _categories(),
+              const SizedBox(height: 22),
+              _rowTitle('Popular Courses', onSeeAll: _openSearches),
+              const SizedBox(height: 14),
+              _popular(popular),
+              if (continueCourse != null) ...[
+                const SizedBox(height: 22),
+                _rowTitle('Continue Learning', onSeeAll: _openSearches),
+                const SizedBox(height: 14),
+                _continueCard(continueCourse),
+              ],
+              if (recommended.isNotEmpty) ...[
+                const SizedBox(height: 22),
+                // GestureDetector = makes the whole "Recommended" header tappable.
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: _openSearches,
+                  child: const Row(
+                    children: [
+                      Text(
+                        'Recommended',
+                        style: TextStyle(
+                          color: _title,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Spacer(),
+                      Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                        child: Text(
+                          'See all',
+                          style: TextStyle(
+                            color: _purple,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                for (var i = 0; i < recommended.length; i++) ...[
+                  _recoCard(recommended[i]),
+                  if (i != recommended.length - 1) const SizedBox(height: 12),
+                ],
+              ],
+              const SizedBox(height: 8),
             ],
           ),
-          const SizedBox(height: 14),
-          _categories(),
-          const SizedBox(height: 22),
-          _rowTitle('Popular Courses', onSeeAll: _openSearches),
-          const SizedBox(height: 14),
-          _popular(),
-          const SizedBox(height: 22),
-          _rowTitle('Continue Learning', onSeeAll: _openSearches),
-          const SizedBox(height: 14),
-          _continueCard(courseById('c5')),
-          const SizedBox(height: 22),
-          // GestureDetector = makes the whole "Recommended" header tappable.
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: _openSearches,
-            child: const Row(
-              children: [
-                Text(
-                  'Recommended',
-                  style: TextStyle(
-                    color: _title,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Spacer(),
-                Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                  child: Text(
-                    'See all',
-                    style: TextStyle(
-                      color: _purple,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 14),
-          _recoCard(courseById('c3')),
-          const SizedBox(height: 12),
-          _recoCard(courseById('c4')),
-          const SizedBox(height: 8),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -603,18 +617,21 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Horizontal ListView with the two Popular Courses cards.
-  Widget _popular() {
+  // Horizontal ListView with Popular Courses cards.
+  Widget _popular(List<Course> courses) {
+    if (courses.isEmpty) {
+      return const SizedBox(
+        height: 80,
+        child: Center(child: Text('No courses available yet.')),
+      );
+    }
     return SizedBox(
       height: 230,
-      child: ListView(
+      child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        children: [
-          _popCard(courseById('c1')),
-
-          const SizedBox(width: 14),
-          _popCard(courseById('c2')),
-        ],
+        itemCount: courses.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 14),
+        itemBuilder: (context, index) => _popCard(courses[index]),
       ),
     );
   }

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import 'category_courses.dart';
+import 'category_repository.dart';
 import 'course.dart';
+import 'course_category.dart';
 import 'widgets/nav_bar.dart';
 
 // =====================================================
@@ -27,58 +29,15 @@ class CategoriesPage extends StatefulWidget {
   State<CategoriesPage> createState() => _CategoriesPageState();
 }
 
-/// One entry of the Categories grid: how it looks and which course list it
-/// opens. The course count is always calculated from the shared data.
-class _CategoryInfo {
-  final String name;
-  final IconData icon;
-  final Color bg;
-  final Color fg;
-
-  const _CategoryInfo(this.name, this.icon, this.bg, this.fg);
-}
-
-// Every category shown in the grid, with its icon and colours.
-const List<_CategoryInfo> _categoryInfos = [
-  _CategoryInfo(
-    'Development',
-    Icons.laptop_mac,
-    Color(0xFFE7F0FF),
-    Color(0xFF5B8DEF),
-  ),
-  _CategoryInfo(
-    'Design',
-    Icons.palette_outlined,
-    Color(0xFFEEE8FF),
-    Color(0xFF7B5CFF),
-  ),
-  _CategoryInfo(
-    'Marketing',
-    Icons.campaign_outlined,
-    Color(0xFFFDE8EE),
-    Color(0xFFE86B8A),
-  ),
-  _CategoryInfo(
-    'Business',
-    Icons.work_outline,
-    Color(0xFFDFF6F6),
-    Color(0xFF4DB8C4),
-  ),
-  _CategoryInfo(
-    'IT & Software',
-    Icons.layers_outlined,
-    Color(0xFFE2F6EC),
-    Color(0xFF5BC49A),
-  ),
-  _CategoryInfo(
-    'Personal Development',
-    Icons.hub_outlined,
-    Color(0xFFFFF3D4),
-    Color(0xFFE8C44A),
-  ),
-];
-
 class _CategoriesPageState extends State<CategoriesPage> {
+  late final Stream<List<CourseCategory>> _categoriesStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _categoriesStream = categoryRepository.watchPublicCategories();
+  }
+
   void _openCategory(String category) {
     // Category tapped -> Open the list of courses in this category.
     Navigator.push(
@@ -144,21 +103,41 @@ class _CategoriesPageState extends State<CategoriesPage> {
               // Expanded = fills the leftover height with the grid.
               Expanded(
                 // GridView -> 2 columns of category cards.
-                child: GridView.builder(
-                  padding: const EdgeInsets.only(bottom: 18),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 14,
-                    mainAxisSpacing: 14,
-                    childAspectRatio: 1.07,
-                  ),
-                  itemCount: _categoryInfos.length,
-                  itemBuilder: (context, index) {
-                    final info = _categoryInfos[index];
-                    return _CategoryCard(
-                      info: info,
-                      countLabel: courseCountLabel(info.name),
-                      onTap: () => _openCategory(info.name),
+                child: StreamBuilder<List<CourseCategory>>(
+                  stream: _categoriesStream,
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      return const Center(
+                        child: Text('Could not load categories. Please retry.'),
+                      );
+                    }
+                    if (!snapshot.hasData) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    final categories = snapshot.data!;
+                    if (categories.isEmpty) {
+                      return const Center(
+                        child: Text('No categories are available yet.'),
+                      );
+                    }
+                    return GridView.builder(
+                      padding: const EdgeInsets.only(bottom: 18),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 14,
+                            mainAxisSpacing: 14,
+                            childAspectRatio: 1.07,
+                          ),
+                      itemCount: categories.length,
+                      itemBuilder: (context, index) {
+                        final category = categories[index];
+                        return _CategoryCard(
+                          category: category,
+                          countLabel: courseCountLabel(category.name),
+                          onTap: () => _openCategory(category.name),
+                        );
+                      },
                     );
                   },
                 ),
@@ -181,12 +160,12 @@ class _CategoriesPageState extends State<CategoriesPage> {
 
 /// Reusable category card (identical layout for every category).
 class _CategoryCard extends StatelessWidget {
-  final _CategoryInfo info;
+  final CourseCategory category;
   final String countLabel;
   final VoidCallback onTap;
 
   const _CategoryCard({
-    required this.info,
+    required this.category,
     required this.countLabel,
     required this.onTap,
   });
@@ -213,15 +192,19 @@ class _CategoryCard extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: info.bg,
+                color: category.iconBackground,
                 borderRadius: BorderRadius.circular(16),
               ),
               // Icon = the category's own symbol.
-              child: Icon(info.icon, color: info.fg, size: 24),
+              child: Icon(
+                category.icon,
+                color: category.iconColor,
+                size: 24,
+              ),
             ),
             const Spacer(),
             Text(
-              info.name,
+              category.name,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(

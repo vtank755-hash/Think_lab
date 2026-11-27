@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'auth_service.dart';
 import 'certificate_page.dart';
 import 'edit_profile_page.dart';
 import 'login_user.dart';
@@ -55,14 +56,24 @@ class ProfilePage extends StatelessWidget {
             child: const Text('Cancel', style: TextStyle(color: _purple)),
           ),
           FilledButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
-              signOut();
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (_) => const LoginPage()),
-                (route) => false,
-              );
+              try {
+                await authService.signOut();
+                signOut();
+                if (!context.mounted) return;
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginPage()),
+                  (route) => false,
+                );
+              } catch (error) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(authErrorMessage(error))),
+                  );
+                }
+              }
             },
             style: FilledButton.styleFrom(
               backgroundColor: const Color(0xFFF04438),

@@ -1,0 +1,123 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function validProfile() {
+      return request.resource.data.keys().hasOnly([
+          'name',
+          'email',
+          'phone',
+          'bio',
+          'avatar',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.keys().hasAll([
+          'name',
+          'email',
+          'phone',
+          'bio',
+          'avatar',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.phone is string
+        && request.resource.data.bio is string
+        && request.resource.data.avatar is string
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    match /admins/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow get, list: if isOwner(userId) || isAdmin();
+      allow create: if (isOwner(userId) && validProfile())
+        || (isAdmin()
+          && request.resource.data.keys().hasOnly([
+            'name', 'email', 'phone', 'bio', 'avatar', 'role',
+            'isBlocked', 'isFeatured', 'createdAt', 'updatedAt'
+          ])
+          && request.resource.data.name is string
+          && request.resource.data.email is string);
+      allow update: if (isOwner(userId)
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['name', 'phone', 'bio', 'avatar', 'updatedAt'])
+          && request.resource.data.name is string
+          && request.resource.data.phone is string
+          && request.resource.data.bio is string
+          && request.resource.data.avatar is string
+          && request.resource.data.updatedAt == request.time)
+        || (isAdmin()
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['name', 'email', 'phone', 'bio', 'avatar', 'role',
+              'isBlocked', 'isFeatured', 'updatedAt']));
+      allow delete: if isAdmin();
+    }
+
+    match /courses/{courseId} {
+      allow get, list: if isAdmin() || resource.data.isPublished == true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /categories/{categoryId} {
+      allow get, list: if isAdmin() || resource.data.isPublic == true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /course_quizzes/{quizId} {
+      allow get, list: if isAdmin() || resource.data.isPublished == true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /users/{userId}/progress/{courseId} {
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
+
+    match /users/{userId}/wishlist/{courseId} {
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
+
+    match /orders/{orderId} {
+      allow get: if isAdmin()
+        || (signedIn() && resource.data.userId == request.auth.uid);
+      allow list: if isAdmin()
+        || (signedIn() && resource.data.userId == request.auth.uid);
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    match /enrollments/{enrollmentId} {
+      allow get: if isAdmin()
+        || (signedIn() && resource.data.userId == request.auth.uid);
+      allow list: if isAdmin()
+        || (signedIn() && resource.data.userId == request.auth.uid);
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    match /activity_logs/{logId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+  }
+}

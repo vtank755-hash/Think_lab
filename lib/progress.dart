@@ -3,6 +3,15 @@ import 'package:flutter/foundation.dart';
 import 'course.dart';
 import 'session.dart';
 
+/// Optional hook for persisting progress changes to Firestore.
+/// Called with (userId, courseId).
+void Function(String userId, String courseId)? onProgressChanged;
+
+String _courseIdFromLessonId(String lessonId) {
+  final index = lessonId.indexOf('-module-');
+  return index > 0 ? lessonId.substring(0, index) : lessonId;
+}
+
 // ---------------------------------------------------------------------------
 // PROGRESS.DART - per-user learning progress:
 // completion, resume point and video positions.
@@ -48,6 +57,10 @@ void markLessonCompleted(
     next.remove(lessonId);
   }
   notifier.value = next;
+  onProgressChanged?.call(
+    userId ?? currentUser.value,
+    _courseIdFromLessonId(lessonId),
+  );
 }
 
 /// `userId -> (courseId -> 'moduleId/lessonId')` — where the user stopped.
@@ -68,6 +81,7 @@ void setResumePoint(
   final next = Map<String, String>.of(notifier.value);
   next[course.id] = '$moduleId_/$lessonId_';
   notifier.value = next;
+  onProgressChanged?.call(userId ?? currentUser.value, course.id);
 }
 
 /// The lesson this user last opened for [course]:
@@ -98,6 +112,10 @@ void saveVideoPosition(String lessonId, int seconds, {String? userId}) {
   final next = Map<String, int>.of(notifier.value);
   next[lessonId] = seconds.clamp(0, 24 * 3600);
   notifier.value = next;
+  onProgressChanged?.call(
+    userId ?? currentUser.value,
+    _courseIdFromLessonId(lessonId),
+  );
 }
 
 // ---------------------------------------------------------- counts / labels

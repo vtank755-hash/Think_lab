@@ -64,46 +64,51 @@ class _SearchPageState extends State<SearchPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Results are only shown for what the user actually searched for.
-    final query = searchBox.text.trim();
-    final searching = query.isNotEmpty;
-    final results = searching ? _results : const <Course>[];
-
     return Scaffold(
       // Scaffold = the whole Search page (white background + body).
       backgroundColor: Colors.white,
       // SafeArea = keeps content away from the notch / status bar.
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(18, 10, 18, 20),
-          // Column -> search bar, chips, then the result list.
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _searchBar(),
-              const SizedBox(height: 22),
-              _sectionTitle('Recent Searches'),
-              const SizedBox(height: 10),
-              _chipRow(_recentSearches),
-              const SizedBox(height: 20),
-              _sectionTitle('Popular Searches'),
-              const SizedBox(height: 10),
-              _chipRow(_popularSearches),
-              const SizedBox(height: 22),
-              _sectionTitle(
-                searching ? 'Results (${results.length})' : 'Search Courses',
-              ),
-              const SizedBox(height: 14),
-              if (results.isEmpty)
-                _emptyState()
-              else ...[
-                for (var i = 0; i < results.length; i++) ...[
-                  _courseCard(results[i]),
-                  if (i != results.length - 1) const SizedBox(height: 12),
+        child: ValueListenableBuilder<List<Course>>(
+          valueListenable: firestoreCourses,
+          builder: (context, _, __) {
+            // Results are only shown for what the user actually searched for.
+            final query = searchBox.text.trim();
+            final searching = query.isNotEmpty;
+            final results = searching ? _results : const <Course>[];
+
+            return SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(18, 10, 18, 20),
+              // Column -> search bar, chips, then the result list.
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _searchBar(),
+                  const SizedBox(height: 22),
+                  _sectionTitle('Recent Searches'),
+                  const SizedBox(height: 10),
+                  _chipRow(_recentSearches),
+                  const SizedBox(height: 20),
+                  _sectionTitle('Popular Searches'),
+                  const SizedBox(height: 10),
+                  _chipRow(_popularSearches),
+                  const SizedBox(height: 22),
+                  _sectionTitle(
+                    searching ? 'Results (${results.length})' : 'Search Courses',
+                  ),
+                  const SizedBox(height: 14),
+                  if (results.isEmpty)
+                    _emptyState()
+                  else ...[
+                    for (var i = 0; i < results.length; i++) ...[
+                      _courseCard(results[i]),
+                      if (i != results.length - 1) const SizedBox(height: 12),
+                    ],
+                  ],
                 ],
-              ],
-            ],
-          ),
+              ),
+            );
+          },
         ),
       ),
     );

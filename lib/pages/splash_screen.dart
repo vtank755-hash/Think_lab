@@ -1,6 +1,13 @@
 import 'dart:async';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+
+import '../admin_dashboard.dart';
+import '../auth_service.dart';
+import '../index.dart';
 import '../login_user.dart';
+import '../services/user_data_sync_service.dart';
+import '../session.dart';
 
 // =====================================================
 // UI STRUCTURE (SCREEN VIEW)
@@ -34,15 +41,38 @@ class _SplashScreenState extends State<SplashScreen> {
     _navigationTimer = Timer(const Duration(seconds: 3), _navigateToLogin);
   }
 
-  void _navigateToLogin() {
+  Future<void> _navigateToLogin() async {
     if (!mounted) return;
 
-    // Splash finished -> Go to the Login page.
-    // Use pushReplacement so user cannot return to splash screen
+    Widget destination = const LoginPage();
+    String? errorMessage;
+    try {
+      final session = await authService.restoreSession();
+      if (session != null) {
+        setAuthenticatedSession(
+          session.user.id,
+          session.user.profile,
+          isAdmin: session.isAdmin,
+        );
+        UserDataSyncService.instance.syncCurrentUser();
+        destination = session.isAdmin
+            ? const AdminDashboardPage()
+            : const HomePage();
+      }
+    } on FirebaseException catch (error) {
+      errorMessage = authErrorMessage(error);
+    }
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => const LoginPage()),
+      MaterialPageRoute(builder: (_) => destination),
     );
+    if (errorMessage != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        messenger.showSnackBar(SnackBar(content: Text(errorMessage!)));
+      });
+    }
   }
 
   // Cancel the timer so it cannot fire after the page is closed.

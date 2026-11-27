@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // -----------------------------------------------------------------------------
-// FINAL QUIZ — the user-side quiz data source.
+// COURSE QUIZ CATALOG — the user-side quiz data source.
 //
 // The quiz UI never contains a single question. It only asks this file for the
 // quiz of the course the user is viewing:
@@ -10,9 +13,8 @@ import 'package:flutter/foundation.dart';
 // final quiz = quizForCourse(course.id);   // 'c5' → 20 Python questions
 // ```
 //
-// Every course owns its OWN quiz (`c5` → `c5_final_quiz` with 20 Python
-// questions, `c1` → `c1_final_quiz` with 20 web-development questions), so
-// questions can never leak between courses.
+// Each course starts with its own final quiz. Admins can add more quizzes to a
+// course; every quiz stays keyed to its course and has its own questions.
 //
 // Rules: the quiz belongs to the selected course and is loaded by course id.
 // It is only offered after EVERY lesson of the course is completed.
@@ -40,9 +42,23 @@ class QuizQuestion {
     required this.options,
     required this.correctIndex,
   });
+
+  Map<String, Object> toJson() => {
+    'topic': topic,
+    'text': text,
+    'options': options,
+    'correctIndex': correctIndex,
+  };
+
+  factory QuizQuestion.fromJson(Map<String, dynamic> json) => QuizQuestion(
+    topic: json['topic'] as String,
+    text: json['text'] as String,
+    options: List<String>.from(json['options'] as List),
+    correctIndex: json['correctIndex'] as int,
+  );
 }
 
-/// The final quiz of ONE course.
+/// One quiz assigned to a course. A course can have multiple quizzes.
 class CourseQuiz {
   /// `<courseId>_final_quiz`, e.g. `c5_final_quiz`.
   final String id;
@@ -52,7 +68,14 @@ class CourseQuiz {
 
   final String title;
 
-  /// Exactly [quizQuestionCount] questions of THIS course.
+  final String description;
+
+  final int timeLimitMinutes;
+  final int passingPercentage;
+  final int maxAttempts;
+  final bool isPublished;
+  final bool isFinal;
+
   final List<QuizQuestion> questions;
 
   const CourseQuiz({
@@ -60,10 +83,67 @@ class CourseQuiz {
     required this.courseId,
     required this.title,
     required this.questions,
+    this.description = '',
+    this.timeLimitMinutes = 0,
+    this.passingPercentage = quizPassingPercentage,
+    this.maxAttempts = 0,
+    this.isPublished = true,
+    this.isFinal = true,
   });
+
+  CourseQuiz copyWith({
+    String? title,
+    String? description,
+    int? timeLimitMinutes,
+    int? passingPercentage,
+    int? maxAttempts,
+    bool? isPublished,
+    bool? isFinal,
+    List<QuizQuestion>? questions,
+  }) => CourseQuiz(
+    id: id,
+    courseId: courseId,
+    title: title ?? this.title,
+    description: description ?? this.description,
+    timeLimitMinutes: timeLimitMinutes ?? this.timeLimitMinutes,
+    passingPercentage: passingPercentage ?? this.passingPercentage,
+    maxAttempts: maxAttempts ?? this.maxAttempts,
+    isPublished: isPublished ?? this.isPublished,
+    isFinal: isFinal ?? this.isFinal,
+    questions: questions ?? this.questions,
+  );
+
+  Map<String, Object> toJson() => {
+    'id': id,
+    'courseId': courseId,
+    'title': title,
+    'description': description,
+    'timeLimitMinutes': timeLimitMinutes,
+    'passingPercentage': passingPercentage,
+    'maxAttempts': maxAttempts,
+    'isPublished': isPublished,
+    'isFinal': isFinal,
+    'questions': questions.map((question) => question.toJson()).toList(),
+  };
+
+  factory CourseQuiz.fromJson(Map<String, dynamic> json) => CourseQuiz(
+    id: json['id'] as String,
+    courseId: json['courseId'] as String,
+    title: json['title'] as String,
+    description: json['description'] as String? ?? '',
+    timeLimitMinutes: json['timeLimitMinutes'] as int? ?? 0,
+    passingPercentage:
+        json['passingPercentage'] as int? ?? quizPassingPercentage,
+    maxAttempts: json['maxAttempts'] as int? ?? 0,
+    isPublished: json['isPublished'] as bool? ?? true,
+    isFinal: json['isFinal'] as bool? ?? true,
+    questions: (json['questions'] as List)
+        .map((item) => QuizQuestion.fromJson(item as Map<String, dynamic>))
+        .toList(),
+  );
 }
 
-/// Every course quiz has exactly 20 questions.
+/// Number of questions in the seeded final quizzes.
 const int quizQuestionCount = 20;
 
 /// 75% or higher passes; 74% does not.
@@ -88,8 +168,7 @@ QuizQuestion _q(
   correctIndex: correctIndex,
 );
 
-/// All quizzes, keyed by COURSE ID — the single source of truth for quizzes,
-/// exactly like `allCourses` is for courses.
+/// Seeded final quizzes, keyed by course id.
 final Map<String, CourseQuiz> _quizByCourse = <String, CourseQuiz>{
   'c1': CourseQuiz(
     id: quizIdFor('c1'),
@@ -860,10 +939,108 @@ final Map<String, CourseQuiz> _quizByCourse = <String, CourseQuiz>{
   ),
 };
 
-/// Loads the quiz that belongs to [courseId] — the ONLY way the UI gets
-/// questions. Returns `null` when that course has no quiz yet.
-CourseQuiz? quizForCourse(String courseId) => _quizByCourse[courseId];
+const _quizStorePreferenceKey = 'learnhub.course_quizzes.v1';
 
-/// Every quiz in the app (used by data-integrity tests).
+Map<String, List<CourseQuiz>> _initialCourseQuizzes() => {
+  for (final quiz in _quizByCourse.values) quiz.courseId: [quiz],
+};
+
+/// The live quiz catalog, grouped by the course each quiz belongs to.
+final ValueNotifier<Map<String, List<CourseQuiz>>> courseQuizzes =
+    ValueNotifier(_initialCourseQuizzes());
+
+/// Loads admin quiz changes saved on this device.
+Future<void> loadSavedCourseQuizzes() async {
+  final preferences = await SharedPreferences.getInstance();
+  final saved = preferences.getString(_quizStorePreferenceKey);
+  if (saved == null) return;
+
+  final decoded = jsonDecode(saved);
+  if (decoded is! List) {
+    throw const FormatException('Saved course quizzes must be a JSON list.');
+  }
+  final quizzes = decoded
+      .map((item) => CourseQuiz.fromJson(item as Map<String, dynamic>))
+      .toList();
+  final byCourse = <String, List<CourseQuiz>>{};
+  for (final quiz in quizzes) {
+    byCourse.putIfAbsent(quiz.courseId, () => []).add(quiz);
+  }
+  courseQuizzes.value = byCourse;
+}
+
+/// All quizzes attached to [courseId].
+List<CourseQuiz> quizzesForCourse(String courseId) =>
+    courseQuizzes.value[courseId] ?? const <CourseQuiz>[];
+
+/// Finds a quiz by its stable id.
+CourseQuiz? courseQuizById(String quizId) {
+  for (final quizzes in courseQuizzes.value.values) {
+    for (final quiz in quizzes) {
+      if (quiz.id == quizId) return quiz;
+    }
+  }
+  return null;
+}
+
+/// Loads the final quiz belonging to [courseId].
+CourseQuiz? quizForCourse(String courseId) {
+  for (final quiz in quizzesForCourse(courseId)) {
+    if (quiz.isFinal) return quiz;
+  }
+  return null;
+}
+
+/// Adds a quiz to its course or updates that quiz in place.
+Future<void> saveCourseQuiz(CourseQuiz quiz) async {
+  final next = {
+    for (final entry in courseQuizzes.value.entries)
+      entry.key: List<CourseQuiz>.of(entry.value),
+  };
+  for (final quizzes in next.values) {
+    quizzes.removeWhere((existing) => existing.id == quiz.id);
+  }
+  final quizzes = next.putIfAbsent(quiz.courseId, () => []);
+  if (quiz.isFinal) {
+    for (var index = 0; index < quizzes.length; index++) {
+      final existing = quizzes[index];
+      if (existing.isFinal && existing.id != quiz.id) {
+        quizzes[index] = existing.copyWith(isFinal: false);
+      }
+    }
+  }
+  quizzes.add(quiz);
+  await _persistCourseQuizzes(next);
+  courseQuizzes.value = next;
+}
+
+/// Removes a quiz from its course.
+Future<void> deleteCourseQuiz(String courseId, String quizId) async {
+  final next = {
+    for (final entry in courseQuizzes.value.entries)
+      entry.key: List<CourseQuiz>.of(entry.value),
+  };
+  next[courseId]?.removeWhere((quiz) => quiz.id == quizId);
+  await _persistCourseQuizzes(next);
+  courseQuizzes.value = next;
+}
+
+Future<void> _persistCourseQuizzes(
+  Map<String, List<CourseQuiz>> catalog,
+) async {
+  final quizzes = catalog.values.expand((items) => items).toList();
+  final preferences = await SharedPreferences.getInstance();
+  final saved = await preferences.setString(
+    _quizStorePreferenceKey,
+    jsonEncode(quizzes.map((quiz) => quiz.toJson()).toList()),
+  );
+  if (!saved) throw StateError('The quiz catalog could not be saved.');
+}
+
+/// Restores seeded quizzes in tests.
+@visibleForTesting
+void resetCourseQuizzes() => courseQuizzes.value = _initialCourseQuizzes();
+
+/// Seeded final quizzes (used by data-integrity tests).
 @visibleForTesting
 List<CourseQuiz> get allQuizzes => _quizByCourse.values.toList();

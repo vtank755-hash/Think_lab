@@ -3,6 +3,8 @@ import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
+import 'user_repository.dart';
+
 const _pageBackground = Color(0xFFF5F3FF);
 const _headingColor = Color(0xFF1B1838);
 const _mutedColor = Color(0xFF7C7A9B);
@@ -32,6 +34,7 @@ class _ManagedUser {
   final Color avatarColor;
   final bool isProMember;
   Uint8List? photoBytes;
+  final bool fromFirestore;
 
   _ManagedUser({
     required this.id,
@@ -50,6 +53,7 @@ class _ManagedUser {
     this.isFeatured = false,
     this.isProMember = true,
     this.photoBytes,
+    this.fromFirestore = false,
   });
 
   String get initials => name
@@ -65,7 +69,13 @@ class _AdminManageUsersPageState extends State<AdminManageUsersPage> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
   String? _statusFilter;
-  final List<_ManagedUser> _users = [
+  Stream<List<ManagedUserRecord>>? _usersStream;
+  final Set<String> _deletedLocalIds = {};
+  final Map<String, _ManagedUser> _localOverrides = {};
+
+
+
+  static List<_ManagedUser> _buildDemoUsers() => [
     _ManagedUser(
       id: 'u1',
       publicId: 'USR-9042',
@@ -144,9 +154,63 @@ class _AdminManageUsersPageState extends State<AdminManageUsersPage> {
     ),
   ];
 
-  List<_ManagedUser> get _filteredUsers {
+  late final List<_ManagedUser> _demoUsersState;
+
+  @override
+  void initState() {
+    super.initState();
+    _demoUsersState = _buildDemoUsers();
+    try {
+      _usersStream = userRepository.watchUsers();
+    } catch (_) {
+      _usersStream = null;
+    }
+  }
+
+  List<_ManagedUser> _mergeUsers(List<ManagedUserRecord> records) {
+    final palette = const [
+      Color(0xFFB7D6E8),
+      Color(0xFFE9C9BD),
+      Color(0xFFD8D4CB),
+      Color(0xFFD7C5B7),
+      Color(0xFFC9D6D1),
+      Color(0xFFD6D0FF),
+    ];
+    final users = <_ManagedUser>[];
+    for (var i = 0; i < records.length; i++) {
+      final r = records[i];
+      final override = _localOverrides[r.id];
+      users.add(_ManagedUser(
+        id: r.id,
+        publicId: r.publicId,
+        name: override?.name ?? r.name,
+        email: override?.email ?? r.email,
+        phone: override?.phone ?? r.phone,
+        joined: r.joinedLabel,
+        role: override?.role ?? r.role,
+        courseCount: override?.courseCount ?? 0,
+        assessment: override?.assessment ?? 0,
+        certificates: override?.certificates ?? 0,
+        totalSpend: override?.totalSpend ?? 0,
+        isBlocked: override?.isBlocked ?? r.isBlocked,
+        isFeatured: override?.isFeatured ?? r.isFeatured,
+        avatarColor: palette[i % palette.length],
+        photoBytes: override?.photoBytes,
+        fromFirestore: true,
+      ));
+    }
+    // Keep demo users visible only when no Firestore users and not deleted.
+    if (users.isEmpty) {
+      users.addAll(
+        _demoUsersState.where((u) => !_deletedLocalIds.contains(u.id)),
+      );
+    }
+    return users;
+  }
+
+  List<_ManagedUser> _filteredUsers(List<_ManagedUser> users) {
     final query = _query.trim().toLowerCase();
-    return _users.where((user) {
+    return users.where((user) {
       final matchesQuery =
           query.isEmpty ||
           user.name.toLowerCase().contains(query) ||
@@ -206,6 +270,125 @@ class _AdminManageUsersPageState extends State<AdminManageUsersPage> {
     setState(() => _statusFilter = status == 'All' ? null : status);
   }
 
+  Future<void> _addUser() async {
+    final nameController = TextEditingController();
+    final emailController = TextEditingController();
+    final phoneController = TextEditingController();
+    String role = 'Learner / Student';
+    final formKey = GlobalKey<FormState>();
+
+    final shouldSave = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('Add User'),
+          content: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    key: const ValueKey('add-user-name'),
+                    controller: nameController,
+                    decoration: const InputDecoration(labelText: 'Full name'),
+                    validator: (v) =>
+                        v == null || v.trim().isEmpty ? 'Name required' : null,
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    key: const ValueKey('add-user-email'),
+                    controller: emailController,
+                    decoration: const InputDecoration(labelText: 'Email'),
+                    keyboardType: TextInputType.emailAddress,
+                    validator: (v) => v == null || !v.contains('@')
+                        ? 'Valid email required'
+                        : null,
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    key: const ValueKey('add-user-phone'),
+                    controller: phoneController,
+                    decoration: const InputDecoration(labelText: 'Phone'),
+                    keyboardType: TextInputType.phone,
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    key: const ValueKey('add-user-role'),
+                    initialValue: role,
+                    decoration: const InputDecoration(labelText: 'Role'),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'Learner / Student',
+                        child: Text('Learner / Student'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Instructor',
+                        child: Text('Instructor'),
+                      ),
+                      DropdownMenuItem(value: 'Admin', child: Text('Admin')),
+                    ],
+                    onChanged: (v) {
+                      if (v != null) setDialogState(() => role = v);
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              key: const ValueKey('confirm-add-user'),
+              onPressed: () {
+                if (formKey.currentState?.validate() ?? false) {
+                  Navigator.pop(dialogContext, true);
+                }
+              },
+              child: const Text('Add'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (!mounted || shouldSave != true) {
+      nameController.dispose();
+      emailController.dispose();
+      phoneController.dispose();
+      return;
+    }
+
+    final name = nameController.text.trim();
+    final email = emailController.text.trim();
+    final phone = phoneController.text.trim();
+    nameController.dispose();
+    emailController.dispose();
+    phoneController.dispose();
+
+    try {
+      await userRepository.addUser(
+        name: name,
+        email: email,
+        phone: phone,
+        role: role,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$name added to Firestore users.')),
+      );
+    } catch (e) {
+      debugPrint('Failed to add user: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to add user: $e')),
+      );
+    }
+  }
+
   Future<void> _editUser(_ManagedUser user) async {
     final updatedUser = await Navigator.push<_ManagedUser>(
       context,
@@ -219,7 +402,22 @@ class _AdminManageUsersPageState extends State<AdminManageUsersPage> {
         ..phone = updatedUser.phone
         ..role = updatedUser.role
         ..photoBytes = updatedUser.photoBytes;
+      _localOverrides[user.id] = user;
     });
+    if (user.fromFirestore) {
+      try {
+        await userRepository.updateUser(user.id, {
+          'name': user.name,
+          'email': user.email,
+          'phone': user.phone,
+          'role': user.role,
+          'isBlocked': user.isBlocked,
+          'isFeatured': user.isFeatured,
+        });
+      } catch (e) {
+        debugPrint('Failed to update user in Firestore: $e');
+      }
+    }
   }
 
   Future<void> _viewUser(_ManagedUser user) async {
@@ -235,7 +433,22 @@ class _AdminManageUsersPageState extends State<AdminManageUsersPage> {
         ..phone = updatedUser.phone
         ..role = updatedUser.role
         ..photoBytes = updatedUser.photoBytes;
+      _localOverrides[user.id] = user;
     });
+    if (user.fromFirestore) {
+      try {
+        await userRepository.updateUser(user.id, {
+          'name': user.name,
+          'email': user.email,
+          'phone': user.phone,
+          'role': user.role,
+          'isBlocked': user.isBlocked,
+          'isFeatured': user.isFeatured,
+        });
+      } catch (e) {
+        debugPrint('Failed to update user in Firestore: $e');
+      }
+    }
   }
 
   Future<void> _deleteUser(_ManagedUser user) async {
@@ -261,13 +474,22 @@ class _AdminManageUsersPageState extends State<AdminManageUsersPage> {
       ),
     );
     if (!mounted || confirmed != true) return;
-    setState(() => _users.remove(user));
+    setState(() {
+      _deletedLocalIds.add(user.id);
+      _demoUsersState.removeWhere((u) => u.id == user.id);
+      _localOverrides.remove(user.id);
+    });
+    if (user.fromFirestore) {
+      try {
+        await userRepository.deleteUser(user.id);
+      } catch (e) {
+        debugPrint('Failed to delete user from Firestore: $e');
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final users = _filteredUsers;
-
     return Scaffold(
       key: const ValueKey('admin-manage-users-page'),
       backgroundColor: _pageBackground,
@@ -335,33 +557,43 @@ class _AdminManageUsersPageState extends State<AdminManageUsersPage> {
                       ),
                     ),
                   ),
+                  const SizedBox(width: 12),
+                  IconButton(
+                    key: const ValueKey('add-user-button'),
+                    onPressed: _addUser,
+                    icon: const Icon(Icons.person_add_alt_1_rounded),
+                    style: IconButton.styleFrom(
+                      fixedSize: const Size(52, 52),
+                      backgroundColor: const Color(0xFF1B1838),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(17),
+                      ),
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 24),
               Expanded(
-                child: users.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'No users found.',
-                          style: TextStyle(color: _mutedColor),
-                        ),
-                      )
-                    : ListView.separated(
-                        key: const ValueKey('manage-users-list'),
-                        itemCount: users.length,
-                        padding: const EdgeInsets.only(bottom: 12),
-                        separatorBuilder: (_, _) => const SizedBox(height: 14),
-                        itemBuilder: (context, index) {
-                          final user = users[index];
-                          return _UserCard(
-                            user: user,
-                            onEdit: () => _editUser(user),
-                            onView: () => _viewUser(user),
-                            onDelete: () => _deleteUser(user),
-                            onToggleFeatured: () => setState(
-                              () => user.isFeatured = !user.isFeatured,
-                            ),
-                          );
+                child: _usersStream == null
+                    ? _buildUsersList(_filteredUsers(
+                        _demoUsersState
+                            .where((u) => !_deletedLocalIds.contains(u.id))
+                            .toList(),
+                      ))
+                    : StreamBuilder<List<ManagedUserRecord>>(
+                        stream: _usersStream,
+                        builder: (context, snapshot) {
+                          final merged = _mergeUsers(snapshot.data ?? const []);
+                          final users = _filteredUsers(merged);
+                          if (snapshot.connectionState ==
+                                  ConnectionState.waiting &&
+                              !snapshot.hasData) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          }
+                          return _buildUsersList(users);
                         },
                       ),
               ),
@@ -369,6 +601,47 @@ class _AdminManageUsersPageState extends State<AdminManageUsersPage> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildUsersList(List<_ManagedUser> users) {
+    if (users.isEmpty) {
+      return const Center(
+        child: Text(
+          'No users found.',
+          style: TextStyle(color: _mutedColor),
+        ),
+      );
+    }
+    return ListView.separated(
+      key: const ValueKey('manage-users-list'),
+      itemCount: users.length,
+      padding: const EdgeInsets.only(bottom: 12),
+      separatorBuilder: (_, _) => const SizedBox(height: 14),
+      itemBuilder: (context, index) {
+        final user = users[index];
+        return _UserCard(
+          user: user,
+          onEdit: () => _editUser(user),
+          onView: () => _viewUser(user),
+          onDelete: () => _deleteUser(user),
+          onToggleFeatured: () async {
+            setState(() {
+              user.isFeatured = !user.isFeatured;
+              _localOverrides[user.id] = user;
+            });
+            if (user.fromFirestore) {
+              try {
+                await userRepository.updateUser(user.id, {
+                  'isFeatured': user.isFeatured,
+                });
+              } catch (e) {
+                debugPrint('Failed to toggle featured in Firestore: $e');
+              }
+            }
+          },
+        );
+      },
     );
   }
 }
@@ -651,6 +924,7 @@ class _AdminUserEditPageState extends State<_AdminUserEditPage> {
         isFeatured: user.isFeatured,
         isProMember: user.isProMember,
         photoBytes: _photoBytes,
+        fromFirestore: user.fromFirestore,
       ),
     );
   }
@@ -855,6 +1129,7 @@ class _AdminUserEditPageState extends State<_AdminUserEditPage> {
     isFeatured: widget.user.isFeatured,
     isProMember: widget.user.isProMember,
     photoBytes: _photoBytes,
+    fromFirestore: widget.user.fromFirestore,
   );
 }
 

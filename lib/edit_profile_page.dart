@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'auth_service.dart';
 import 'session.dart';
 import 'widgets/nav_bar.dart';
 
@@ -24,6 +25,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   late final TextEditingController _email;
   late final TextEditingController _phone;
   late final TextEditingController _bio;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -44,39 +46,65 @@ class _EditProfilePageState extends State<EditProfilePage> {
     super.dispose();
   }
 
-  void _saveChanges() {
-    updateProfile(
-      name: _name.text.trim(),
-      email: _email.text.trim(),
-      phone: _phone.text.trim(),
-      bio: _bio.text.trim(),
-    );
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(
-      SnackBar(
-        backgroundColor: _heading,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        content: const Row(
-          children: [
-            Icon(Icons.check_circle_rounded, color: Color(0xFF25A55F), size: 22),
-            SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Profile updated successfully!',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+  Future<void> _saveChanges() async {
+    final name = _name.text.trim();
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Name is required.')),
+      );
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    try {
+      await authService.updateProfile(
+        name: name,
+        phone: _phone.text,
+        bio: _bio.text,
+      );
+      if (!mounted) return;
+      updateProfile(name: name, phone: _phone.text.trim(), bio: _bio.text.trim());
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            backgroundColor: _heading,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
             ),
-          ],
-        ),
-      ),
-    );
-    Navigator.pop(context);
+            content: const Row(
+              children: [
+                Icon(
+                  Icons.check_circle_rounded,
+                  color: Color(0xFF25A55F),
+                  size: 22,
+                ),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Profile updated successfully!',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      Navigator.pop(context);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(authErrorMessage(error))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 
   void _changePhoto() {
@@ -87,7 +115,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
         backgroundColor: _heading,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        content: const Text('Profile photo updated!'),
+        content: const Text(
+          'Profile photo upload is unavailable until Firebase Storage is configured.',
+        ),
       ),
     );
   }
@@ -108,7 +138,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
               const SizedBox(height: 24),
               _buildTextField('FULL NAME', _name),
               const SizedBox(height: 18),
-              _buildTextField('EMAIL', _email),
+              _buildTextField('EMAIL', _email, readOnly: true),
               const SizedBox(height: 18),
               _buildTextField('PHONE NUMBER', _phone),
               const SizedBox(height: 18),
@@ -219,6 +249,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     String label,
     TextEditingController controller, {
     int maxLines = 1,
+    bool readOnly = false,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -242,6 +273,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           child: TextField(
             controller: controller,
             maxLines: maxLines,
+            readOnly: readOnly,
             style: const TextStyle(
               color: Color(0xFF1B1838),
               fontSize: 15,
@@ -285,11 +317,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
           color: Colors.transparent,
           child: InkWell(
             borderRadius: BorderRadius.circular(16),
-            onTap: _saveChanges,
-            child: const Center(
+            onTap: _isSaving ? null : _saveChanges,
+            child: Center(
               child: Text(
-                'Save Changes',
-                style: TextStyle(
+                _isSaving ? 'Saving...' : 'Save Changes',
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 16,
                   fontWeight: FontWeight.w700,

@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 
 import 'cart.dart';
 import 'cart_page.dart';
+import 'admin_quiz_management.dart';
 import 'course.dart';
 import 'progress.dart';
 import 'purchases.dart';
+import 'quiz.dart';
 import 'quiz_results.dart';
+import 'quiz_page.dart';
 import 'session.dart';
 import 'open_lesson.dart';
 import 'widgets/completion_card.dart';
@@ -500,12 +503,114 @@ class _CourseDetailsState extends State<CourseDetails> {
                   ),
                   const SizedBox(height: 12),
                 ],
+                _courseQuizzes(finalQuizAvailable: completed >= total),
               ],
             );
           },
         );
       },
     );
+  }
+
+  Widget _courseQuizzes({required bool finalQuizAvailable}) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: isAdminSession,
+      builder: (context, isAdmin, _) =>
+          ValueListenableBuilder<Map<String, List<CourseQuiz>>>(
+            valueListenable: courseQuizzes,
+            builder: (context, quizzesByCourse, _) {
+              final quizzes =
+                  (quizzesByCourse[course.id] ?? const <CourseQuiz>[])
+                      .where(
+                        (quiz) =>
+                            quiz.isPublished &&
+                            (!quiz.isFinal || finalQuizAvailable),
+                      )
+                      .toList();
+              if (quizzes.isEmpty && !isAdmin) {
+                return const SizedBox.shrink();
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(child: _sectionHeading('Course Quizzes')),
+                      if (isAdmin)
+                        TextButton.icon(
+                          key: const ValueKey('course-add-quiz-button'),
+                          onPressed: _addCourseQuiz,
+                          icon: const Icon(Icons.add, size: 18),
+                          label: const Text('New Quiz'),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  if (quizzes.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Text(
+                        'No quizzes for this course yet.',
+                        style: TextStyle(color: _muted),
+                      ),
+                    ),
+                  for (final quiz in quizzes)
+                    Card(
+                      color: _chipBg,
+                      elevation: 0,
+                      child: ListTile(
+                        key: ValueKey('course-quiz-${quiz.id}'),
+                        title: Text(
+                          quiz.title,
+                          style: const TextStyle(
+                            color: _heading,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        subtitle: Text(
+                          '${quiz.questions.length} questions  •  Passing ${quiz.passingPercentage}%'
+                          '${quiz.isFinal ? '  •  Final quiz' : ''}',
+                          style: const TextStyle(color: _muted, fontSize: 12),
+                        ),
+                        trailing: const Icon(
+                          Icons.chevron_right_rounded,
+                          color: _purple,
+                        ),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                QuizPage(courseId: course.id, quizId: quiz.id),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+    );
+  }
+
+  Future<void> _addCourseQuiz() async {
+    final quiz = await Navigator.push<CourseQuiz>(
+      context,
+      MaterialPageRoute(builder: (_) => const AdminQuizEditorPage()),
+    );
+    if (quiz == null || !mounted) return;
+    try {
+      await saveCourseQuiz(quiz);
+      if (quiz.isFinal) resetQuizAttemptsForCourse(quiz.courseId);
+      if (mounted) {
+        final selectedCourse = allCourses.firstWhere(
+          (item) => item.id == quiz.courseId,
+        );
+        _snack('Quiz added to ${selectedCourse.title}.');
+      }
+    } catch (error) {
+      if (mounted) _snack('Quiz was not saved: $error');
+    }
   }
 
   // ---------------------------------------------------------- bottom bar

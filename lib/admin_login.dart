@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'auth_service.dart';
 import 'admin_dashboard.dart';
-import 'index.dart';
+import 'services/user_data_sync_service.dart';
 import 'session.dart';
 
 const _darkBg = Color(0xFF232262);
@@ -22,9 +23,10 @@ class AdminLoginPage extends StatefulWidget {
 
 class _AdminLoginPageState extends State<AdminLoginPage> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController(text: 'admin@learnhub.in');
-  final _passwordController = TextEditingController(text: 'admin123');
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -54,9 +56,17 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
     return null;
   }
 
-  void _submitLogin() {
-    if (_formKey.currentState?.validate() ?? false) {
-      signIn(_emailController.text.trim());
+  Future<void> _submitLogin() async {
+    if (_isSubmitting || !(_formKey.currentState?.validate() ?? false)) return;
+    setState(() => _isSubmitting = true);
+    try {
+      final user = await authService.signInAdmin(
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
+      if (!mounted) return;
+      setAuthenticatedSession(user.id, user.profile, isAdmin: true);
+      UserDataSyncService.instance.syncCurrentUser();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: Colors.white,
@@ -85,6 +95,14 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
         context,
         MaterialPageRoute(builder: (_) => const AdminDashboardPage()),
       );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(authErrorMessage(error))));
+      }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
@@ -97,7 +115,8 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
           padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 20),
           child: ConstrainedBox(
             constraints: BoxConstraints(
-              minHeight: MediaQuery.of(context).size.height -
+              minHeight:
+                  MediaQuery.of(context).size.height -
                   MediaQuery.of(context).padding.top -
                   MediaQuery.of(context).padding.bottom -
                   40,
@@ -323,21 +342,29 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
                       width: double.infinity,
                       height: 54,
                       child: FilledButton(
-                        onPressed: _submitLogin,
+                        onPressed: _isSubmitting ? null : _submitLogin,
                         style: FilledButton.styleFrom(
                           backgroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
                         ),
-                        child: const Text(
-                          'Login to Dashboard',
-                          style: TextStyle(
-                            color: _primaryNavy,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                'Login to Dashboard',
+                                style: TextStyle(
+                                  color: _primaryNavy,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                       ),
                     ),
 

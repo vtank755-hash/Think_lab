@@ -1,4 +1,12 @@
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+
+import 'course.dart';
+import 'course_repository.dart';
+import 'firebase_options.dart';
+import 'quiz.dart';
+import 'services/user_data_sync_service.dart';
 import 'pages/splash_screen.dart';
 
 // =============================================================
@@ -15,8 +23,47 @@ import 'pages/splash_screen.dart';
 // Bottom nav: Home | Learning | Wishlist | Profile
 // =============================================================
 // Starting point of every Flutter app: runApp builds the widget tree below.
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await _initializeFirebase();
+  UserDataSyncService.instance.init();
+  _startFirestoreCourseSync();
+  await loadSavedCourseQuizzes();
   runApp(const LearnHubApp());
+}
+
+void _startFirestoreCourseSync() {
+  courseRepository.watchCourses().listen(
+    (courses) {
+      setFirestoreCourses(courses);
+    },
+    onError: (Object error, StackTrace stackTrace) {
+      debugPrint('Firestore course sync error: $error');
+      debugPrint('$stackTrace');
+    },
+  );
+
+  // Seed built-in courses if the Firestore collection is empty.
+  // This is best-effort; rules may block non-admin clients.
+  courseRepository.seedBuiltInCoursesIfEmpty().catchError((Object error) {
+    debugPrint('Course seed skipped: $error');
+  });
+}
+
+Future<void> _initializeFirebase() async {
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    debugPrint(
+      'Firebase connected: ${DefaultFirebaseOptions.currentPlatform.projectId} '
+      '(${defaultTargetPlatform.name})',
+    );
+  } catch (error, stackTrace) {
+    debugPrint('Firebase initialization failed: $error');
+    debugPrint('$stackTrace');
+    rethrow;
+  }
 }
 
 /// ROOT WIDGET (StatelessWidget)

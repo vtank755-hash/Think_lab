@@ -3,7 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:think_lab/categories.dart';
 import 'package:think_lab/category_courses.dart';
+import 'package:think_lab/category_repository.dart';
 import 'package:think_lab/course.dart';
+import 'package:think_lab/course_category.dart';
 import 'package:think_lab/course_details.dart';
 import 'package:think_lab/index.dart';
 
@@ -63,6 +65,42 @@ Future<void> expectOnlyCoursesOf(WidgetTester tester, String category) async {
 }
 
 void main() {
+  late CategoryRepository originalRepository;
+  late FakeCategoryRepository fakeRepository;
+
+  setUp(() {
+    originalRepository = categoryRepository;
+    fakeRepository = FakeCategoryRepository();
+    categoryRepository = fakeRepository;
+  });
+
+  tearDown(() async {
+    categoryRepository = originalRepository;
+    await fakeRepository.dispose();
+  });
+
+  testWidgets('Categories reflect shared category updates in realtime', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: CategoriesPage()));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Photography'), findsNothing);
+    await fakeRepository.save(
+      CourseCategory(
+        id: 'CAT-new',
+        name: 'Photography',
+        icon: Icons.camera_alt_outlined,
+        iconBackground: const Color(0xFFE6E2FF),
+        iconColor: const Color(0xFF5144D8),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(find.text('Photography'), 300);
+    expect(find.text('Photography'), findsOneWidget);
+  });
+
   testWidgets('Category cards show real counts, never the fake figures', (
     tester,
   ) async {
